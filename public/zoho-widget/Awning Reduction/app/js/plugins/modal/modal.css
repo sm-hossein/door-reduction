@@ -1,0 +1,233 @@
+.backdrop{
+    background-color: rgba(0, 0, 0, 0.3);
+    position: fixed;
+    z-index: 1000;
+    width: 100%;
+    height: 100%;
+}
+.modalContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    z-index: 10000;
+    width: 100%;
+    height: 100vh;
+}
+.modal‌Box {
+    width: 90%;
+    height: 90%;
+    background: white;
+    border-radius: 4px;
+    padding: 24px 12px;
+    /* overflow-y: scroll; */
+    position: relative;
+    overflow-x: hidden;
+}
+.row {
+    display: flex;
+    justify-content: space-between;
+    flex-direction: row;
+    align-items: center;
+}
+.modalCol {
+    width: 33%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    /* margin-left: 12px; */
+}
+.modalCol:last-child {
+    justify-content: flex-end;
+}
+.title {
+    font-weight: bold;
+    font-size: 18pt;
+}
+.content {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 12px;
+    /* overflow-y: scroll; */
+}
+.closeButton {
+    border: none;
+    background: none;
+    outline: none;
+}
+.closeButton button:focus {
+    border: none;
+    outline: none;
+}
+.newCustomerModalContent {
+    /* background-color: #fefefe;
+    margin: 5% auto;
+    padding: 30px 20px;
+    border: 1px solid #888;
+    width: 95% !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    height: 80%;
+    font-size: 28px;
+    font-weight: bold;
+    border-radius: 8px !important;
+    font-family: 'Roboto', sans-serif;
+    box-sizing: border-box; */
+    max-height: 90%;
+    height: auto;
+    padding-bottom: 50px;
+    overflow-x: hidden;
+    width: 100%;
+    overflow-y: auto;
+  }
+
+
+  .modal-content p {
+    margin: 0px;
+  }
+
+  .row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
+  .footer {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    padding-right: 12px;
+    margin-top: 12px;
+    position: absolute;
+    bottom: 0px;
+    left: 0px;
+    width: 100%;
+    min-height: 70px;
+    /* padding-left: 12px; */
+    background: white;
+  }
+
+  .tabelTitleRow {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: calc(100% - 0px);
+    border: 1px solid #222;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    box-sizing: border-box;
+    /* margin-right: 13px; */
+    /* display: none; */
+    font-weight: bold;
+  }
+  .boldTitles{
+    font-weight: bolder !important;
+  }
+
+  .tabelRow {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    border: 1px solid #222;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    box-sizing: border-box;
+    margin-right: 4px;
+  }
+
+  .tabelContentRow {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    box-sizing: border-box;
+    /* overflow-y: scroll; */
+    /* padding-top: 70px; */
+    margin-top: 10px;
+  }
+
+  .titlesBox {
+    border-right: 1px solid #222;
+    padding: 4px 0px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 16px;
+    font-weight: normal;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 68px;
+
+  }
+
+  .boxWidthSmall {
+    width: 18%;
+  }
+
+  .boxWidthMedium {
+    width: 18%;
+  }
+
+  .boxWidthMedium2 {
+    width: 20%;
+    font-size: 14px;
+  }
+
+  .boxWidthLarge {
+    width: 28%;
+  }
+
+  .titlesBox:last-child {
+    border-right: none;
+  }
+
+  .title {
+    font-weight: bold;
+    color: #222;
+    font-size: 28px;
+  }
+
+  .closeButton {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .closeButton img {
+    height: 16px;
+    width: 16px;
+  }
+
+  .continueButton {
+    padding: 0px 24px;
+    height: 44px;
+    background-color: white;
+    border-radius: 4px;
+    color: #222;
+    font-weight: normal;
+    font-size: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .continueButton:focus {
+    border: none;
+    outline: none;
+  }

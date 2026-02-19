@@ -1,0 +1,169 @@
+﻿Component ID,Description,Group,Category
+1,1x2 Cross Tube,Frame,Horz
+2,1x2 Hinge Tube,Frame,Hinge
+3,1x2 Lock Tube,Frame,Lock Tube
+5,1x1 Center Tube,Frame,Horz
+6,1/2 x 1/2 Horizontal Picket,Frame,Horz
+7,1/2 x 1/2 Vertical Picket,Frame,Vert
+8,00000000000000000000,Design,Other
+9,Glass Panel,Final,Glass
+10,Fancy Freeze Glass Panel,Final,Glass
+11,Header,Opening,Z-Bar
+12,Jambs,Opening,Z-Bar
+14,1x1 Vertical Tube,Frame,Vert
+15,Legs,Opening,Legs
+17,1x1 Lock Tube,Frame,Lock Tube
+20,1x1 Hinge Tube,Frame,Hinge
+22,1x1 Horizontal Tube,Frame,Horz
+23,Expander,Opening,Z-Bar
+24,1x3 Cross Tube,Frame,Horz
+25,3/16x1 Center Strap,Frame,Horz
+27,Screen Panel,Final,Screen
+28,M-13 Std Center Casting,Design,Other
+29,03-003 CASTING,Design,Other
+30,03-002 CASTING,Design,Other
+31,03-016 CASTING,Design,Other
+32,03-700 CASTING,Design,Other
+33,Twisted bar,Frame,Other
+34,03-WG6 RUNNING OAK CORNER CASTING,Design,Other
+35,03-WG1 CASTING,Design,Other
+36,03-WG7 CENTER DESIGN,Design,Other
+37,Astrical,Opening,Z-Bar
+38,0000000000000000000,Design,Other
+39,03-WG5 CASTING,Design,Other
+40,0000000000000000000,Design,Other
+41,0000000000000000000000,Design,Other
+42,00000000000000000,Design,Other
+43,03-WG4 CASTING,Design,Other
+44,03-023 CASTING,Design,Other
+45,00000000000000000000,Design,Other
+46,000000000000000000000,Design,Other
+47,03-WG2 CASTING,Design,Other
+48,03-WG14 CENTER DESIGN,Design,Other
+49,0000000000000000000,Design,Other
+50,M-12 Short Center Casting,Design,Other
+51,03-WG15 CENTER DESIGN,Design,Other
+52,03-039  CASTING,Design,Other
+53,03-043 CASTING,Design,Other
+54,03-044 CASTING,Design,Other
+55,03-046 CASTING,Design,Other
+56,03-047 CASTING,Design,Other
+57,03-048 CASTING,Design,Other
+58,03-058 CASTING,Design,Other
+59,03-060 CASTING,Design,Other
+60,03-068 CASTING,Design,Other
+61,03-234 CASTING,Design,Other
+62,03-100 CASTING,Design,Other
+63,03-102 CASTING,Design,Other
+64,03-102L CASTING,Design,Other
+65,03-200 CASTING,Design,Other
+66,03-201 CASTING,Design,Other
+67,03-205B CASTING,Design,Other
+68,03-208 CASTING,Design,Other
+69,03-211 CASTING,Design,Other
+70,03-213B CASTING,Design,Other
+71,03-240 CASTING,Design,Other
+72,03-264 CASTING,Design,Other
+73,03-503 CASTING,Design,Other
+74,03-550 CASTING,Design,Other
+75,03-551 CASTING,Design,Other
+76,03-553 CASTING,Design,Other
+77,03-650 CASTING,Design,Other
+78,03-650S CASTING,Design,Other
+79,03-651 CASTING,Design,Other
+80,03-707 CASTING,Design,Other
+81,03-709F CASTING,Design,Other
+82,03-713 CASTING,Design,Other
+83,03-757 CASTING,Design,Other
+84,02-001 Custom Bent Casting,Design,Other
+85,02-002 ELITE PICKET PICKET W/BRASS COLLARS,Design,Other
+86,03-001 CASTING,Design,Other
+87,03-004 CASTING,Design,Other
+88,03-005 CASTING,Design,Other
+89,03-006 CASTING,Design,Other
+90,03-008 CASTING,Design,Other
+91,03-022 CASTING,Design,Other
+92,03-027 CASTING,Design,Other
+93,03-029 CASTING,Design,Other
+94,03-030 CASTING,Design,Other
+95,03-037 CASTING,Design,Other
+96,03-038 CASTING,Design,Other
+97,03-WG10 CENTER DESIGN,Design,Other
+98,03-WG16 CENTER DESIGN,Design,Other
+99,03-WG17 CENTER DESIGN,Design,Other
+100,03-WG18 CENTER CASTING,Design,Other
+101,03-WG3 CASTING,Design,Other
+102,03-WG9 CASTING,Design,Other
+103,03-WG12 CASTING,Design,Other
+104,03-WG13 CASTING,Design,Other
+105,1/2 X 1/2 HORIZONTAL CENTER DESIGN,Design,Other
+106,3/4 X 40 ORNATUBE,Design,Other
+107,3/4 X 40 ORNATUBE,Frame,Other
+108,1x1 HORIZONTAL PICKET,Frame,Horz
+109,1X1 VERTICAL PICKET,Frame,Vert
+110,HYDE PARK CASTING,Design,Other
+111,AZTEC CASTING,Design,Other
+112,AZTEC CENTER CASTING,Design,Other
+113,DIAMOND CASTING,Design,Other
+114,MISSION CASTING TOP,Design,Other
+115,SOUTHERN CASTING TOP,Design,Other
+116,SOUTHERN CASTING BOTTOM,Design,Other
+117,Sunrise Casting,Design,Other
+118,CROWNED DOUBLE CASTING,Design,Other
+119,DEFENDER VERTICAL SPEAR HEADS,Frame,Vert
+120,3/16 X 1 BENT BAR,Frame,Other
+121,MISSION CASTING BOTTOM,Design,Other
+122,1X1 HORIZONTAL CENTER PICKET,Design,Other
+123,RENAISSANCE CORNERS,Frame,Other
+124,7/16 SQ. TWISTED BAR,Design,Other
+125,1/2 X 1/2 CENTER TUBE,Frame,Horz
+126,3/4 x 1 - 1/2 Cross Tube,Frame,Horz
+127,Renaissance Casting,Design,Other
+128,Zuni Casting,Design,Other
+129,1/2X1/2X11-1/2 Horizontal Picket,Design,Horz
+130,3/4 x 1 Vertical Picket,Frame,Vert
+131,3/4 x 1 Horizontal Picket,Frame,Horz
+132,Oxford Casting,Design,Other
+134,Coyote #13,Design,Other
+135,Moon #17,Design,Other
+136,Kokopelli #16,Design,Other
+137,Horse #21,Design,Other
+138,Siesta #20,Design,Other
+139,Corner #15,Design,Other
+140,Gecko #14,Design,Other
+141,Arapaho Freeze #11,Design,Other
+142,Large Cactus #10A,Design,Other
+143,Small Cactus #10B,Design,Other
+144,Large Quail #18A,Design,Other
+145,Small Quail #18B,Design,Other
+146,Large Anasazi Feeeze #12A,Design,Other
+147,Small Anazazi Freeze #12B,Design,Other
+148,W-Freeze,Design,Other
+150,03-709F Center Casting,Design,Other
+151,American Casting,Design,Other
+152,3/4 Vertical Ornatube,Frame,Vert
+153,3/4 Horizontal Ornatube,Frame,Horz
+154,1/2 x 1/2 157 Center Picket,Frame,Vert-M
+155,1/2 x 1/2 157 Inside Picket,Frame,Vert-I
+156,1/2 x 1/2 157 Outside Picket,Frame,Vert-O
+157,217 Spear Casting,Design,Other
+158,3/16 x 1 Strap for Defender,Design,Other
+161,02-002 Vertical Aristocrat,Frame,Vert
+162,02-002 Horizontal Aristocrat,Frame,Horz
+163,Cayman Casting,Design,Other
+164,Sunray Casting,Design,Other
+165,Diamond Edge Casting,Design,Other
+166,Empire Casting,Design,Other
+167,Dynasty Top Casting,Design,Other
+168,Dynasty Bottom Casting,Design,Other
+169,Tulip Casting,Design,Other
+170,1/2 x 1/2 SmFrz Picket,Frame,Vert-SmFrz
+171,1/2 x 1/2 203 Outside Picket,Frame,Vert-203O
+172,1/2 x 1/2 203 Inside Picket,Frame,Vert-203I
+173,1/2 x 1/2 203 Horiz Picket,Frame,Horz-203
+174,Prestige Casting,Design,Other
+175,Brittany Casting #17,Design,Other
+176,Atlantic Casting,Design,Other
+177,Jamaica Casting,Design,Other
+178,Art Deco Casting,Design,Other
+179,1/2 x 1/2 StdFrz Picket,Frame,Vert-StFrz

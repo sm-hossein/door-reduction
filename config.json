@@ -1,0 +1,1 @@
+{"router":[{"path":"/","action":"DoorReductionBackend"}],"relationalStore":[],"connector":[],"name":"DoorReductionBackend","orgdependencies":[],"type":0,"dependencies":[]}

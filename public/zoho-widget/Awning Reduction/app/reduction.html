@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html id="HtmlPrint">
+
+<head>
+  <meta charset="UTF-8" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+    integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous" />
+  <link rel="stylesheet" href="./css/app.css" />
+  <link rel="stylesheet" href="./css/MultiSelectDropdown.css" />
+
+
+
+  <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.3.4/jspdf.debug.js"></script> -->
+  <!-- <script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script> -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script> -->
+  <script src='https://cdnjs.cloudflare.com/ajax/libs/es6-promise/4.2.8/es6-promise.min.js'></script>
+
+</head>
+
+<style type="text/css" media="print">
+  @page {
+    size: Letter portrait;
+
+  }
+
+  .mainWrapper {
+    width: 99%;
+  }
+
+  #submitLA,
+  #measureFields {
+    display: none;
+  }
+</style>
+
+<body>
+  <div id="Modal"></div>
+  <div class="container-fluid printClass">
+    <div class="row">
+      <div class="col-lg-11 col-md-11 col-sm-11">
+        <button onclick="" class="btn btn-danger" id="printBox">Print</button>
+        <!-- <button onclick="" class="btn btn-danger" id="pdfTest">pdfTest</button> -->
+      </div>
+      <div class="col-lg-1 col-md-1 col-sm-1">
+        <button onclick="" class="btn backToFormStyle" id="backToForm">&#10005</button>
+      </div>
+    </div>
+  </div>
+  <div class="mainWrapper">
+    <div class="w3-container">
+      <h2 id="mainTitle"></h2>
+
+      <div id="mainContent">
+
+        <div class="submitLAWrapper">
+          <button id="measureFields" class="measure">Measure</button>
+          <button id="submitLA" class="submitLAButton" disabled>Reduce</button>
+          <!-- <button id="FileTest" class="FileTest" >File Test</button> -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- The Calculation Error Modal -->
+  <div id="calculationErrorModal" class="modal">
+
+    <!-- Modal content -->
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <p id='hiddenCalculationType' style="opacity: 0; height: 0px;"></p>
+      <p>You Should Calculate Again.</p>
+      <p>Do You Want To Proceed?</p>
+      <div class="modalBtnWrapper">
+        <button id="proceedWithoutCalculation" id="calculatingAgain" class="modalBtn yesBtn">Yes</button>
+        <button id="cancelProcess" class="modalBtn noBtn">No</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- saving on zoho Failed Modal  -->
+  <div id="failedZohoSave" class="modal">
+    <!-- Modal content -->
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <p id='hiddenCalculationType' style="opacity: 0; height: 0px;"></p>
+      <p>Save on Zoho Failed!</p>
+      <p id="saveFailedErrortext"></p>
+      <div class="modalBtnWrapper">
+        <button id="saveFailedOk"  class="modalBtn noBtn">Ok</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./js/jquery-min.js"></script>
+  <script src="./js/jquery.mask.min.js"></script>
+  <script src="./js/lib/ZohoEmbededAppSDK.min.js"></script>
+  <script type='text/javascript' src="./js/reportSheetHeader.js"></script>
+  <script type='text/javascript' src="./js/AwningReductionForm.js"></script>
+  <script type='text/javascript' src="./js/PatioCoverForm.js"></script>
+  <script type='text/javascript' src="./js/formGenerator.js"></script>
+  <script type='text/javascript' src="./js/apiCalls.js"></script>
+  <script type='text/javascript' src="./js/createSelectOptions.js"></script>
+  <script type='text/javascript' src="./js/measure_reductionSheetFooter.js"></script>
+  <script type='text/javascript' src="./js/multiSelectImplement.js"></script>
+  <script type='text/javascript' src="./js/measuresheetCreatorFunctions.js"></script>
+  <script type='text/javascript' src="./js/consts.js"></script>
+  <script type='text/javascript' src="./js/plugins/modal/modal.js"></script>
+  <script type='text/javascript' src="./js/awningReductionReductionsheet.js"></script>
+
+  <script>
+    var firstTime = true;
+    var pageData 
+
+    $(async function () {
+      $('#printBox').hide();
+      $('#pdfTest').hide();
+      $('#backToForm').hide();
+      ZOHO.embeddedApp.on("PageLoad", async function (data) {
+        pageData=data
+        ZOHO.CRM.UI.Resize({ height: "90%", width: "95%" }).then(function (
+          data
+        ) { });
+
+        if (firstTime) {
+          // get Record
+          await ZOHO.CRM.API.getRecord({
+            Entity: "Order_Items",
+            RecordID: data.EntityId[0],
+          }).then(function (orderItems) {
+            console.log(orderItems);
+            let orderItem = orderItems.data[0]
+            if (orderItem.Product_Category == 'Retractable Awning' || orderItem.Product_Category == 'Awning Recover') {
+              var script = document.createElement('script');
+              // script.setAttribute('src', './js/AwningReduction.js');
+              console.log('hi');
+              script.setAttribute('src', './js/AwningReductionClean.js');
+              document.head.appendChild(script);
+            }
+            if (orderItem.Product_Category == 'Patio Sun and Wind' || orderItem.Product_Category == 'Patio Sun and Wind Recover') {
+              var script = document.createElement('script');
+              script.setAttribute('src', './js/AwningReductionPSWClean.js');
+              // script.setAttribute('src', './js/AwningReductionPSW.js');
+              document.head.appendChild(script);
+            }
+            if (orderItem.Product_Category == 'Solar Shade' || orderItem.Product_Category == 'Solar Shade Recover') {
+              var script = document.createElement('script');
+              // script.setAttribute('src', './js/SolarShade.js');
+              script.setAttribute('src', './js/AwningSolarShadeClean.js');
+              document.head.appendChild(script);
+            }
+            if (orderItem.Product_Category == 'Patio Cover' || orderItem.Product_Category == 'Patio Cover Recover') {
+              var script = document.createElement('script');
+              script.setAttribute('src', './js/PatioCover.js');
+              document.head.appendChild(script);
+            }
+            if (orderItem.Product_Category == 'Zipper Shade' || orderItem.Product_Category == 'Zipper Shade Recover') {
+              var script = document.createElement('script');
+              script.setAttribute('src', './js/ZipperShade.js');
+              document.head.appendChild(script);
+            }
+          });
+          firstTime = false
+        }
+        $("#FileTest").unbind().on('click', function () {
+        console.log('start of file creation');
+        var content = " This is the content of my file:) \n prductId=1234568, orderId=987654 \n test= test,test";
+        var element = document.createElement('a');
+        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(content));
+        element.setAttribute('download', 'hi');
+
+        element.style.display = 'none';
+        document.body.appendChild(element);
+        element.click();
+          console.log('in the middle');
+        document.body.removeChild(element);
+        var blob = new Blob([content], {
+          type: "text/plain;charset=utf-8"
+        });
+
+        ZOHO.CRM.API.attachFile({
+          Entity: "Order_Items",
+          RecordID: data.EntityId[0],
+          File: {
+            Name: 'textFileTest' + ".txt",
+            Content: blob
+          }
+        }).then(function (data2) {
+          console.log(data2, "attachFile");
+        }).catch(err => console.log('error', err))
+        })
+
+        $("#pdfTest").unbind().on('click', function () {
+          console.log('here ');
+          // html2canvas($("#LAMeasureSheet")[0]).then((canvas) => {
+          //   var imgData = canvas.toDataURL('image/png');
+          //   var doc = new jsPDF("p", "mm", "a4");
+          //   doc.addImage(imgData, 'PNG', 0, 0, 210, 279,'someAlias', 'FAST');
+          //   $("#pdfTest").prop("disabled", true)
+          //   doc.save('sample-file.pdf');
+          //   ZOHO.CRM.API.attachFile({
+          //     Entity: "Order_Items",
+          //     RecordID: data.EntityId[0],
+          //     File: {
+          //       Name: data.EntityId[0]+".pdf",
+          //       Content: doc.output('blob')
+          //     }
+          //   }).then(function (data2) {
+          //     console.log(data2, "attachFile");
+          //     $("#pdfTest").prop("disabled", false)
+          //   }).catch(err => console.log('error', err))
+
+          // });
+
+
+          // var makepdf = document.getElementById("LAMeasureSheet");
+          // // html2pdf().set({
+          // //   pagebreak: { mode: 'avoid-all' }
+          // // }).from(makepdf)
+          // html2pdf(makepdf, {
+          //   filename: 'myfile.pdf',
+          //   image: { type: 'jpeg', quality: 0.98 },
+          //   html2canvas: { scale: '2', logging: true, dpi: 192, letterRendering: true },
+          //   jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+          // }).save();
+
+
+          // html2canvas($("#LAMeasureSheet")[0], {
+          //   // allowTaint: false,
+          //   // useCORS: true,
+          //   // foreignObjectRendering: true
+          // }).then((canvas) => {
+          //   var imgData = canvas.toDataURL('image/jpeg', 0.5);
+          //   var doc = new jsPDF("p", "mm", "a4");
+          //   doc.addImage(imgData, 'JPEG', 0, 0, 210, 260, 'someAlias', 'FAST');
+          //   $("#pdfTest").prop("disabled", true)
+          //   doc.save('sample-file.pdf');
+          //   // ZOHO.CRM.API.attachFile({
+          //   //   Entity: "Order_Items",
+          //   //   RecordID: data.EntityId[0],
+          //   //   File: {
+          //   //     Name: data.EntityId[0] + ".pdf",
+          //   //     Content: doc.output('blob')
+          //   //   }
+          //   // }).then(function (data2) {
+          //   //   console.log(data2, "attachFile");
+          //   //   $("#pdfTest").prop("disabled", false)
+          //   // }).catch(err => console.log('error', err))
+
+          // });
+
+
+
+          // ZOHO.CRM.API.attachFile({
+          //   Entity: "Order_Items",
+          //   RecordID: data.EntityId[0],
+          //   File: {
+          //     Name: data.EntityId[0] + ".pdf",
+          //     Content: doc.output('blob')
+          //   }
+          // }).then(function (data2) {
+          //   console.log(data2, "attachFile");
+          //   $("#pdfTest").prop("disabled", false)
+          // }).catch(err => console.log('error', err))
+
+        });
+
+
+
+      });
+      ZOHO.embeddedApp.init();
+
+      // modal Close
+      $('.close').on('click', function () {
+        $('.modal').css('display', 'none')
+      })
+    })
+  </script>
+  <!-- <script src="./js/AwningReduction.js"></script> -->
+
+</body>
+
+</html>

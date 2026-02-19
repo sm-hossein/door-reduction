@@ -1,0 +1,412 @@
+:root {
+  color-scheme: only light;
+  --purple: #6b6aa6;
+  --purple-dark: #56548c;
+  --panel: #5f5e96;
+  --border: #c5c2d9;
+  --ink: #111;
+  --paper: #f4f4f7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: var(--purple);
+  color: var(--ink);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.app {
+  padding: 24px 24px 40px;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+.title {
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.subtitle {
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 12px 16px;
+}
+
+.status {
+  margin-bottom: 12px;
+  color: #fff;
+}
+
+.status-label {
+  font-weight: 600;
+}
+
+.status-error {
+  margin-top: 4px;
+  color: #ffd1d1;
+  font-weight: 600;
+}
+
+.content {
+  background: var(--panel);
+  padding: 12px 16px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.row.top-row,
+.row.top-row + .row {
+  grid-template-columns: 1fr 280px;
+  gap: 20px;
+}
+
+.row.mid-row {
+  grid-template-columns: 1fr 320px;
+}
+
+.row.lower-row {
+  grid-template-columns: minmax(280px, 340px) minmax(380px, 1fr);
+  align-items: start;
+}
+
+.row.notes-row {
+  grid-template-columns: 1fr 1fr;
+}
+
+.field {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  font-size: 14px;
+  min-width: 0;
+}
+
+.field.wide {
+  grid-template-columns: 110px 1fr;
+}
+
+.field label {
+  font-weight: 600;
+}
+
+.field input,
+.field select,
+.field textarea {
+  background: #fff;
+  border: 1px solid #3f3d6b;
+  padding: 4px 6px;
+  font-size: 14px;
+  width: 100%;
+  min-width: 0;
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.block-left,
+.block-right {
+  background: var(--purple-dark);
+  border: 1px solid var(--border);
+  padding: 10px;
+}
+
+.block-left .field,
+.block-right .field {
+  margin-bottom: 8px;
+}
+
+.dim-row {
+  display: grid;
+  grid-template-columns: 70px 12px 70px auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.dim-note {
+  font-size: 12px;
+  color: #eae9f5;
+}
+
+.lock-ok {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.mini-grid {
+  display: grid;
+  grid-template-columns: 1fr 60px 60px 70px;
+  gap: 6px;
+  color: #fff;
+  font-size: 12px;
+  align-items: center;
+}
+
+.mini-grid input {
+  width: 100%;
+}
+
+.mini-title {
+  font-weight: 700;
+  grid-column: 1 / -1;
+  margin-top: 6px;
+}
+
+.options {
+  display: block;
+  color: #fff;
+  min-width: 0;
+}
+
+.options > label {
+  display: block;
+  font-weight: 600;
+  margin: 2px 0 6px;
+}
+
+.multi-picklist {
+  position: relative;
+  min-width: 0;
+}
+
+.multi-picklist-control {
+  width: 100%;
+  min-height: 46px;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: #fff;
+  border: 1px solid #3f3d6b;
+  text-align: left;
+  cursor: pointer;
+}
+
+.multi-picklist-control.open {
+  border-color: #3a61d8;
+  box-shadow: 0 0 0 2px rgba(58, 97, 216, 0.16);
+}
+
+.multi-picklist-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 24px;
+}
+
+.multi-picklist-placeholder {
+  color: #6d7081;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.multi-picklist-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #edf1ff;
+  border: 1px solid #bccbff;
+  border-radius: 999px;
+  padding: 2px 8px;
+  max-width: 100%;
+}
+
+.multi-picklist-chip-text {
+  color: #1d2a4b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.multi-picklist-chip-remove {
+  font-size: 12px;
+  color: #3d4b75;
+  line-height: 1;
+}
+
+.multi-picklist-caret {
+  color: #5f5f7d;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.multi-picklist-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  max-height: 220px;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #b8bdd2;
+  box-shadow: 0 6px 20px rgba(16, 20, 35, 0.2);
+  z-index: 10;
+}
+
+.multi-picklist-meta {
+  color: #5f6680;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.multi-picklist-option {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 10px 12px;
+  color: #2a3045;
+  cursor: pointer;
+}
+
+.multi-picklist-option:hover {
+  background: #f2f4fb;
+}
+
+.multi-picklist-option.selected {
+  background: #e8efff;
+}
+
+.multi-picklist-empty {
+  padding: 10px 12px;
+  color: #6b7086;
+  font-size: 13px;
+}
+
+.multi-picklist-help {
+  margin-top: 4px;
+  color: #dfe3f4;
+  font-size: 12px;
+}
+
+.stack {
+  display: grid;
+  gap: 10px;
+}
+
+.notes textarea {
+  min-height: 70px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.pdf-panel {
+  margin-top: 14px;
+  border: 1px solid var(--border);
+  background: #fff;
+  height: 520px;
+}
+
+.pdf-panel iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.btn {
+  padding: 6px 18px;
+  border: 1px solid #2d2c54;
+  background: #f0f0f0;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn.primary {
+  background: #f4f4f7;
+  border: 2px solid #2d2c54;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pdf-viewers {
+  margin-top: 14px;
+}
+
+.pdf-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pdf-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pdf-tab.active {
+  background: #dcdcf0;
+  border-width: 2px;
+}
+
+.pdf-list {
+  display: grid;
+  gap: 14px;
+}
+
+.pdf-item-title {
+  color: #fff;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.pdf-loading {
+  margin-top: 14px;
+  color: #fff;
+}
+
+@media (max-width: 900px) {
+  .row,
+  .row.mid-row,
+  .row.lower-row,
+  .row.notes-row {
+    grid-template-columns: 1fr;
+  }
+
+  .block-right {
+    margin-top: 10px;
+  }
+}

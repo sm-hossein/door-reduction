@@ -1,0 +1,8 @@
+node_modules/
+Output/
+pdf/
+*.log
+.env
+.DS_Store
+Thumbs.db
+*.zip
