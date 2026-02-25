@@ -168,9 +168,45 @@ async function zohoRequest(context, { method, url }) {
   });
 }
 
+async function zohoRequestRaw(context, { method, url }) {
+  const connector = context.getConnection("crm");
+  const connRes = await connector.makeRequestSync({ url, method });
+  const chunks = [];
+  return new Promise((resolve, reject) => {
+    connRes.on("data", chunk => chunks.push(chunk));
+    connRes.on("end", () => {
+      resolve({
+        statusCode: Number(connRes.statusCode || 0),
+        headers: connRes.headers || {},
+        body: Buffer.concat(chunks)
+      });
+    });
+    connRes.on("error", err => reject(err));
+  });
+}
+
+async function getCrmRecordPhoto(context, moduleApiName, recordId) {
+  if (!recordId) return null;
+  try {
+    const url = `https://www.zohoapis.com/crm/v8/${moduleApiName}/${recordId}/photo`;
+    const res = await zohoRequestRaw(context, { method: "GET", url });
+    const contentType = String(res.headers["content-type"] || "").toLowerCase();
+    if (res.statusCode < 200 || res.statusCode >= 300) return null;
+    if (!res.body || !res.body.length) return null;
+    if (!contentType.startsWith("image/")) return null;
+    return {
+      contentType,
+      base64: res.body.toString("base64")
+    };
+  } catch (_err) {
+    return null;
+  }
+}
+
 function normalizeProduct(record) {
   if (!record) return null;
   return {
+    "Zoho Record ID": normalizeCrmScalar(record.id),
     "Product ID": normalizeCrmScalar(record[PRODUCT_FIELD_MAP.productId]),
     "Description": normalizeCrmScalar(record[PRODUCT_FIELD_MAP.description]),
     "Product Type": normalizeCrmScalar(record[PRODUCT_FIELD_MAP.productType]),
@@ -220,7 +256,36 @@ function getLockPrefix(lockType) {
 
 function getStyleCode(record) {
   if (!record) return "";
-  return record.Style_Code || record.Reduction_Style_Code || "";
+  return record.Reduction_Style_Code || "";
+}
+
+function isSecurityGateCategory(productCategory) {
+  return normalizeCrmScalar(productCategory).toLowerCase() === "security gate";
+}
+
+function isGateCategory(productCategory) {
+  return normalizeCrmScalar(productCategory).toLowerCase().includes("gate");
+}
+
+function getGateDoorTypeFromProduct(crmProduct, orderItemProductCategory) {
+  if (!crmProduct || !isGateCategory(orderItemProductCategory)) return "";
+  const productDoorType = normalizeCrmScalar(crmProduct.Door_Type).toLowerCase();
+  if (productDoorType === "single") return "1 Gate";
+  if (productDoorType === "double") return "2 Gate";
+  return "";
+}
+
+function getSteelProductName(crmProduct, lockType, orderItemProductCategory) {
+  if (!crmProduct) return "";
+  if (isSecurityGateCategory(orderItemProductCategory)) {
+    return normalizeCrmScalar(crmProduct.Reduction_Style_Code);
+  }
+  const styleCode = getStyleCode(crmProduct);
+  const prefix = getLockPrefix(lockType);
+  if (prefix && styleCode) {
+    return `${prefix}${styleCode}`;
+  }
+  return "";
 }
 
 async function getCrmProductByZohoId(context, recordId) {
@@ -259,7 +324,7 @@ function getDoorField(record, jsonObj, field, fallback) {
   return fallback;
 }
 
-function normalizeDoor(context, record, steelProductName) {
+function normalizeDoor(context, record, steelProductName, resolvedDoorType) {
   if (!record) return null;
   const jsonObj = parseJsonField(record);
   const itemType = record.Item_Type || {};
@@ -287,7 +352,7 @@ function normalizeDoor(context, record, steelProductName) {
     "Hinge": normalizeCrmScalar(getDoorField(record, jsonObj, "Hinge", DOOR_FIELD_DEFAULTS["Hinge"])),
     "Operator": normalizeCrmScalar(getDoorField(record, jsonObj, "Operator", DOOR_FIELD_DEFAULTS["Operator"])),
     "Color": normalizeCrmScalar(record.Color || DOOR_FIELD_DEFAULTS["Color"]),
-    "Type": normalizeCrmScalar(record.Double_Door_Type || DOOR_FIELD_DEFAULTS["Type"]),
+    "Type": normalizeCrmScalar(resolvedDoorType || record.Double_Door_Type || DOOR_FIELD_DEFAULTS["Type"]),
     "Width": String(getDoorField(record, jsonObj, "Width", DOOR_FIELD_DEFAULTS["Width"])),
     "Width Fraction": String(getDoorField(record, jsonObj, "Width Fraction", DOOR_FIELD_DEFAULTS["Width Fraction"])),
     "Height": String(getDoorField(record, jsonObj, "Height", DOOR_FIELD_DEFAULTS["Height"])),
@@ -371,6 +436,9 @@ function createZohoDataProvider(context) {
       const record = res && Array.isArray(res.data) ? res.data[0] : null;
       return normalizeProduct(record);
     },
+    async getProductPhotoByZohoId(recordId) {
+      return getCrmRecordPhoto(context, PRODUCT_MODULE, recordId);
+    },
     async getComponentById(componentId) {
       context.log.INFO("getComponentById: " + String(componentId));
       const url = `https://www.zohoapis.com/crm/v8/${COMPONENT_MODULE}/${componentId}`;
@@ -425,15 +493,13 @@ function createZohoDataProvider(context) {
       const res = await zohoRequest(context, { method: "GET", url });
       const record = res && Array.isArray(res.data) ? res.data[0] : null;
       let steelProductName = "";
+      let resolvedDoorType = "";
       if (record && record.Item_Type && record.Item_Type.id) {
         const crmProduct = await getCrmProductByZohoId(context, record.Item_Type.id);
-        const styleCode = getStyleCode(crmProduct);
-        const prefix = getLockPrefix(record.Lock_Type);
-        if (prefix && styleCode) {
-          steelProductName = `${prefix}${styleCode}`;
-        }
+        steelProductName = getSteelProductName(crmProduct, record.Lock_Type, record.Product_Category);
+        resolvedDoorType = getGateDoorTypeFromProduct(crmProduct, record.Product_Category);
       }
-      return normalizeDoor(context, record, steelProductName);
+      return normalizeDoor(context, record, steelProductName, resolvedDoorType);
     },
     async getDoorByJobNumber(jobNumber) {
       return this.getDoorById(jobNumber);

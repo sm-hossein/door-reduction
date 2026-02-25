@@ -1,4 +1,6 @@
-import { createZohoDataProvider } from "./src/zohoDataProvider.js";
+import zohoDataProviderModule from "./src/zohoDataProvider.cjs";
+
+const { createZohoDataProvider } = zohoDataProviderModule;
 
 export async function handler(context, basicIO) {
   try {

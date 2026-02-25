@@ -1,5 +1,5 @@
 const esmRequire = require("esm")(module);
-const { createZohoDataProvider, createZohoDoorDataContext } = esmRequire("./src/zohoDataProvider.js");
+const { createZohoDataProvider, createZohoDoorDataContext } = require("./src/zohoDataProvider.cjs");
 const { ExportDoorDataToJSON } = esmRequire("./src/calcDoorOutput.js");
 
 module.exports = async function (context, basicIO) {
@@ -7,12 +7,22 @@ module.exports = async function (context, basicIO) {
     const requestObject = basicIO.getParameter("request_object");
     const params = requestObject && requestObject.params ? requestObject.params : {};
     const testComponentId = params.testComponentId;
+    const productPhotoRecordId = params.productPhotoRecordId;
 
     try {
         if (testComponentId) {
             const provider = createZohoDataProvider(context);
             const component = await provider.getComponentById(testComponentId);
             basicIO.write(JSON.stringify({ testComponentId, component }));
+            return;
+        }
+
+        if (productPhotoRecordId) {
+            const provider = createZohoDataProvider(context);
+            const photo = provider.getProductPhotoByZohoId
+                ? await provider.getProductPhotoByZohoId(productPhotoRecordId)
+                : null;
+            basicIO.write(JSON.stringify({ photo: photo || null }));
             return;
         }
 

@@ -138,8 +138,7 @@ export function ExportDoorDataToJSON(ctx, data, doorId) {
     ctxSide.gblProductID = sideProductId;
     SetProductVariables(ctxSide, sideProduct);
 
-    const manualAdjustNotes = toStr(door["AdjustNotes"]).trim();
-    const clearanceNotes = manualAdjustNotes || chkClearance(ctxSide.clearanceInput || {});
+    const clearanceNotes = chkClearance(ctxSide.clearanceInput || {});
     const buildNotes = GetBuildNotes(ctxSide, tables.Fractions);
     const hinge = GetOptions(ctxSide, "Hinge", tables.ReferenceCodes);
     const lock = GetOptions(ctxSide, "Lock", tables.ReferenceCodes);
@@ -175,6 +174,7 @@ export function ExportDoorDataToJSON(ctx, data, doorId) {
       "OrderType",
       "ColorName",
       "ProductDescription",
+      "ProductZohoRecordId",
       "HingeOutput",
       "LockOutput",
       "ClearanceNotes",
@@ -205,6 +205,9 @@ export function ExportDoorDataToJSON(ctx, data, doorId) {
           break;
         case "ProductDescription":
           raw[h] = toStr(sideProduct.Description || "");
+          break;
+        case "ProductZohoRecordId":
+          raw[h] = toStr(sideProduct["Zoho Record ID"] || "");
           break;
         case "HingeOutput":
           raw[h] = toStr(hinge);

@@ -2,6 +2,7 @@
   const CONFIG = {
     orderItemsModule: "Order_Items",
     reductionResultField: "Reduction_Result",
+    pdfFunctionName: "doorreductionbackend",
     moduleOverride: "Order_Items"
   };
 
@@ -25,6 +26,44 @@
     }
 
     return { hasValue: true, parsed: raw };
+  };
+
+  const parseFunctionOutput = output => {
+    if (typeof output !== "string") return output;
+    const trimmed = output.trim();
+    if (!trimmed) return null;
+    if (trimmed.startsWith("Error:")) {
+      throw new Error(trimmed);
+    }
+    const direct = safeJsonParse(trimmed, null);
+    if (direct) return direct;
+    const splitIndex = trimmed.lastIndexOf("}{");
+    if (splitIndex !== -1) {
+      return safeJsonParse(trimmed.slice(splitIndex + 1), null);
+    }
+    return null;
+  };
+
+  const productPhotoCache = new Map();
+
+  const fetchProductPhotoForPdf = async productZohoRecordId => {
+    const recordId = String(productZohoRecordId || "").trim();
+    if (!recordId) return null;
+    if (productPhotoCache.has(recordId)) {
+      return productPhotoCache.get(recordId);
+    }
+    if (!window.ZOHO?.CRM?.FUNCTIONS?.execute) {
+      productPhotoCache.set(recordId, null);
+      return null;
+    }
+    const resp = await ZOHO.CRM.FUNCTIONS.execute(CONFIG.pdfFunctionName, {
+      productPhotoRecordId: recordId
+    });
+    const output = resp?.details?.output ?? resp?.output;
+    const parsed = parseFunctionOutput(output) || {};
+    const photo = parsed?.photo?.base64 ? parsed.photo : null;
+    productPhotoCache.set(recordId, photo);
+    return photo;
   };
 
   const buildPdfBytesForDoor = async (door, pageMeta = {}) => {
@@ -64,6 +103,36 @@
     };
 
     const safe = v => (v === null || v === undefined ? "" : String(v));
+    const base64ToUint8 = b64 => {
+      const bin = atob(String(b64 || ""));
+      const out = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i += 1) out[i] = bin.charCodeAt(i);
+      return out;
+    };
+
+    let productImage = null;
+    try {
+      const productZohoRecordId = safe(raw.ProductZohoRecordId || raw["ProductZohoRecordId"]);
+      const photo = await fetchProductPhotoForPdf(productZohoRecordId);
+      const photoB64 = safe(photo && photo.base64);
+      const photoType = safe(photo && photo.contentType).toLowerCase();
+      if (photoB64) {
+        const bytes = base64ToUint8(photoB64);
+        if (photoType.includes("png")) {
+          productImage = await pdfDoc.embedPng(bytes);
+        } else if (photoType.includes("jpeg") || photoType.includes("jpg")) {
+          productImage = await pdfDoc.embedJpg(bytes);
+        } else {
+          try {
+            productImage = await pdfDoc.embedPng(bytes);
+          } catch (_pngErr) {
+            productImage = await pdfDoc.embedJpg(bytes);
+          }
+        }
+      }
+    } catch (_imgErr) {
+      productImage = null;
+    }
 
     const wrapText = (str, maxWidth, f, size) => {
       const words = String(str || "").split(/\s+/).filter(Boolean);
@@ -109,6 +178,10 @@
     const rightW = headerW - leftW - colGap;
     const leftX = M;
     const rightX = M + leftW + colGap;
+    const headerPhotoGap = 10;
+    const headerPhotoW = productImage ? 96 : 0;
+    const rightFieldsW = productImage ? Math.max(90, rightW - headerPhotoW - headerPhotoGap) : rightW;
+    const photoBoxX = rightX + rightFieldsW + (productImage ? headerPhotoGap : 0);
 
     const getFieldMetrics = opts => {
       const padding = opts.padding ?? 3;
@@ -169,7 +242,7 @@
     const measureStack = (yTop, w, fields) =>
       fields.reduce((yPos, [, value, opts]) => yPos - measureFieldHeight(w, value, opts) - headerGap, yTop);
 
-    const panelBottom = Math.min(measureStack(headerTop, leftW, leftFields), measureStack(headerTop, rightW, rightFields)) + headerGap;
+    const panelBottom = Math.min(measureStack(headerTop, leftW, leftFields), measureStack(headerTop, rightFieldsW, rightFields)) + headerGap;
 
     page.drawRectangle({
       x: M,
@@ -188,8 +261,37 @@
 
     let yR = headerTop;
     rightFields.forEach(([label, value, opts]) => {
-      yR = drawField(rightX, yR, rightW, label, value, opts);
+      yR = drawField(rightX, yR, rightFieldsW, label, value, opts);
     });
+
+    if (productImage) {
+      const boxPadding = 4;
+      const boxX = photoBoxX;
+      const boxY = panelBottom + 6;
+      const boxW = rightW - rightFieldsW - headerPhotoGap;
+      const boxH = headerTop - boxY - 2;
+      if (boxW > 20 && boxH > 20) {
+        page.drawRectangle({
+          x: boxX,
+          y: boxY,
+          width: boxW,
+          height: boxH,
+          color: rgb(1, 1, 1),
+          borderColor: colorBorder,
+          borderWidth: 1
+        });
+        const availW = boxW - boxPadding * 2;
+        const availH = boxH - boxPadding * 2;
+        const iw = productImage.width;
+        const ih = productImage.height;
+        const scale = Math.min(availW / iw, availH / ih);
+        const drawW = Math.max(1, iw * scale);
+        const drawH = Math.max(1, ih * scale);
+        const imgX = boxX + (boxW - drawW) / 2;
+        const imgY = boxY + (boxH - drawH) / 2;
+        page.drawImage(productImage, { x: imgX, y: imgY, width: drawW, height: drawH });
+      }
+    }
 
     const NOTES_SECTION_GAP = 4;
     const NOTES_SECTION_MIN_MARGIN = 20;

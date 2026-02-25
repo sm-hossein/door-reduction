@@ -5,6 +5,7 @@
   const CONFIG = {
     orderItemsModule: "Order_Items",
     productsModule: "Products",
+    steelProductsModule: "Steel_Products",
     ordersModule: "Deals",
     reductionFieldsKey: "Reduction_Fields",
     exportFunctionName: "doorreductionbackend",
@@ -48,6 +49,28 @@
     }
 
     return null;
+  };
+
+  const productPhotoCache = new Map();
+
+  const fetchProductPhotoForPdf = async productZohoRecordId => {
+    const recordId = String(productZohoRecordId || "").trim();
+    if (!recordId) return null;
+    if (productPhotoCache.has(recordId)) {
+      return productPhotoCache.get(recordId);
+    }
+    if (!window.ZOHO?.CRM?.FUNCTIONS?.execute) {
+      productPhotoCache.set(recordId, null);
+      return null;
+    }
+    const resp = await ZOHO.CRM.FUNCTIONS.execute(CONFIG.pdfFunctionName, {
+      productPhotoRecordId: recordId
+    });
+    const output = resp?.details?.output ?? resp?.output;
+    const parsed = parseFunctionOutput(output) || {};
+    const photo = parsed && parsed.photo && parsed.photo.base64 ? parsed.photo : null;
+    productPhotoCache.set(recordId, photo);
+    return photo;
   };
 
   const buildPdfBytesForDoor = async (door, formOverride, pageMeta = {}) => {
@@ -99,6 +122,36 @@
     };
 
     const safe = v => (v === null || v === undefined ? "" : String(v));
+    const base64ToUint8 = b64 => {
+      const bin = atob(String(b64 || ""));
+      const out = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i += 1) out[i] = bin.charCodeAt(i);
+      return out;
+    };
+
+    let productImage = null;
+    try {
+      const productZohoRecordId = safe(raw.ProductZohoRecordId || raw["ProductZohoRecordId"]);
+      const photo = await fetchProductPhotoForPdf(productZohoRecordId);
+      const photoB64 = safe(photo && photo.base64);
+      const photoType = safe(photo && photo.contentType).toLowerCase();
+      if (photoB64) {
+        const bytes = base64ToUint8(photoB64);
+        if (photoType.includes("png")) {
+          productImage = await pdfDoc.embedPng(bytes);
+        } else if (photoType.includes("jpeg") || photoType.includes("jpg")) {
+          productImage = await pdfDoc.embedJpg(bytes);
+        } else {
+          try {
+            productImage = await pdfDoc.embedPng(bytes);
+          } catch (_pngErr) {
+            productImage = await pdfDoc.embedJpg(bytes);
+          }
+        }
+      }
+    } catch (_imgErr) {
+      productImage = null;
+    }
 
     const wrapText = (str, maxWidth, f, size) => {
       const words = String(str || "").split(/\s+/).filter(Boolean);
@@ -146,6 +199,10 @@
     const rightW = headerW - leftW - colGap;
     const leftX = M;
     const rightX = M + leftW + colGap;
+    const headerPhotoGap = 10;
+    const headerPhotoW = productImage ? 96 : 0;
+    const rightFieldsW = productImage ? Math.max(90, rightW - headerPhotoW - headerPhotoGap) : rightW;
+    const photoBoxX = rightX + rightFieldsW + (productImage ? headerPhotoGap : 0);
 
     const getFieldMetrics = opts => {
       const padding = opts.padding ?? 3;
@@ -218,7 +275,7 @@
 
     const panelBottom = Math.min(
       measureStack(headerTop, leftW, leftFields),
-      measureStack(headerTop, rightW, rightFields)
+      measureStack(headerTop, rightFieldsW, rightFields)
     ) + headerGap;
 
     page.drawRectangle({
@@ -238,8 +295,37 @@
 
     let yR = headerTop;
     rightFields.forEach(([label, value, opts]) => {
-      yR = drawField(rightX, yR, rightW, label, value, opts);
+      yR = drawField(rightX, yR, rightFieldsW, label, value, opts);
     });
+
+    if (productImage) {
+      const boxPadding = 4;
+      const boxX = photoBoxX;
+      const boxY = panelBottom + 6;
+      const boxW = rightW - rightFieldsW - headerPhotoGap;
+      const boxH = headerTop - boxY - 2;
+      if (boxW > 20 && boxH > 20) {
+        page.drawRectangle({
+          x: boxX,
+          y: boxY,
+          width: boxW,
+          height: boxH,
+          color: rgb(1, 1, 1),
+          borderColor: colorBorder,
+          borderWidth: 1
+        });
+        const availW = boxW - boxPadding * 2;
+        const availH = boxH - boxPadding * 2;
+        const iw = productImage.width;
+        const ih = productImage.height;
+        const scale = Math.min(availW / iw, availH / ih);
+        const drawW = Math.max(1, iw * scale);
+        const drawH = Math.max(1, ih * scale);
+        const imgX = boxX + (boxW - drawW) / 2;
+        const imgY = boxY + (boxH - drawH) / 2;
+        page.drawImage(productImage, { x: imgX, y: imgY, width: drawW, height: drawH });
+      }
+    }
 
     const NOTES_SECTION_GAP = 4;
     const NOTES_SECTION_MIN_MARGIN = 20;
@@ -537,11 +623,14 @@
     secondaryProductName: "",
     width: "",
     height: "",
+    legLength: "",
+    legLengthFraction: "",
     lock: "",
     lockColor: "",
     handleType: "",
     color: "",
     hinge: "",
+    operator: "",
     lockOk: false,
     exDboltTop: "",
     exDboltBottom: "",
@@ -556,6 +645,7 @@
 
   const REDUCTION_FIELD_MAP = {
     hinge: "Hinge",
+    operator: "Operator",
     lockOk: "LockOK",
     exDboltTop: "ExDBLoc",
     exDboltBottom: "ExDBLocB",
@@ -563,6 +653,8 @@
     exKnobTop: "ExKnobLoc",
     exKnobBottom: "ExKnobLocB",
     exKnobClearance: "ExKnobLocFrac",
+    legLength: "Leg Length",
+    legLengthFraction: "Leg Length Fraction",
     secondaryProductId: "Secondary Product ID",
     secondaryProductName: "Secondary Product Description",
     doorGateOption: "Door_Gate_Option",
@@ -572,8 +664,28 @@
   const isOperatorModeForDoorType = doorType =>
     String(doorType || "").trim().toLowerCase() === "french";
 
+  const isDoubleGateDoorType = doorType =>
+    normalizeDoorTypeKey(doorType) === "2 gate";
+
   const normalizeDoorTypeKey = value =>
     String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+
+  const isSingleDoorTypeValue = value =>
+    normalizeDoorTypeKey(value).startsWith("single");
+
+  const getGateDoorTypeFromProduct = (orderItemCategory, productDoorType) => {
+    const category = String(
+      orderItemCategory?.name ??
+      orderItemCategory?.value ??
+      orderItemCategory ??
+      ""
+    ).trim().toLowerCase();
+    if (!category.includes("gate")) return "";
+    const doorType = String(productDoorType || "").trim().toLowerCase();
+    if (doorType === "single") return "1 Gate";
+    if (doorType === "double") return "2 Gate";
+    return "";
+  };
 
   const SIDE3_DOOR_TYPES = new Set([
     "patio",
@@ -587,12 +699,40 @@
   const requiresSecondaryProductForDoorType = doorType =>
     SIDE3_DOOR_TYPES.has(normalizeDoorTypeKey(doorType));
 
-  const SECONDARY_PRODUCT_CANDIDATES = {
-    patio: [{ id: "Tube-S", name: "Tube Frame" }]
-  };
+  const LEG_LENGTH_FRACTION_OPTIONS = [
+    { value: "0.25", label: "1/4" },
+    { value: "0.5", label: "1/2" },
+    { value: "0.75", label: "3/4" }
+  ];
 
-  const getSecondaryCandidatesForDoorType = doorType =>
-    SECONDARY_PRODUCT_CANDIDATES[normalizeDoorTypeKey(doorType)] || [];
+  const getSecondaryProductRuleForDoorType = doorType => {
+    const key = normalizeDoorTypeKey(doorType);
+    if (!requiresSecondaryProductForDoorType(key)) {
+      return { enabled: false, locked: false, allowEmpty: false, options: [] };
+    }
+    if (key === "patio") {
+      return {
+        enabled: true,
+        locked: false,
+        allowEmpty: true,
+        options: [{ id: "Tube-S", name: "Tube-S" }]
+      };
+    }
+    if (key === "2 gate") {
+      return {
+        enabled: true,
+        locked: true,
+        allowEmpty: false,
+        options: [{ id: "Tube-D", name: "Tube-D" }]
+      };
+    }
+    return {
+      enabled: true,
+      locked: true,
+      allowEmpty: false,
+      options: [{ id: "Tube-S", name: "Tube-S" }]
+    };
+  };
 
   const REDUCTION_FIELD_MAP_REVERSE = Object.keys(REDUCTION_FIELD_MAP)
     .reduce((acc, key) => {
@@ -730,21 +870,10 @@
 
     const hasZoho = window.ZOHO && ZOHO.CRM;
     const isOperatorMode = isOperatorModeForDoorType(form.doorType);
+    const hasSeparateHingeAndOperator = isDoubleGateDoorType(form.doorType);
     const requiresSecondaryProduct = requiresSecondaryProductForDoorType(form.doorType);
-    const secondaryCandidates = (() => {
-      const base = getSecondaryCandidatesForDoorType(form.doorType);
-      const fromValue = form.secondaryProductId
-        ? [{ id: form.secondaryProductId, name: form.secondaryProductName || form.secondaryProductId }]
-        : [];
-      const merged = [...fromValue, ...base];
-      const seen = new Set();
-      return merged.filter(item => {
-        const id = String(item.id || "").trim();
-        if (!id || seen.has(id)) return false;
-        seen.add(id);
-        return true;
-      });
-    })();
+    const secondaryProductRule = getSecondaryProductRuleForDoorType(form.doorType);
+    const secondaryCandidates = secondaryProductRule.options;
 
     const setField = (key, value) => {
       setForm(prev => ({ ...prev, [key]: value }));
@@ -892,11 +1021,25 @@
           initial.dueDate = record.Order_Closing_Date || initial.dueDate;
           initial.doorType = record.Double_Door_Type || initial.doorType;
           initial.lock = toUiLockValue(record.Lock_Type || initial.lock);
+          initial.hinge = String(record.Hinge || initial.hinge || "");
+          initial.operator = String(record.Operator || initial.operator || "");
           initial.lockColor = String(record.Lock_Color || initial.lockColor || "");
           initial.handleType = String(record.Handle_Type || initial.handleType || "");
           initial.color = record.Color || initial.color;
           initial.width = record.Width ?? initial.width;
           initial.height = record.Height ?? initial.height;
+          initial.legLength = String(
+            record.Leg_Length ??
+            record["Leg Length"] ??
+            initial.legLength ??
+            ""
+          );
+          initial.legLengthFraction = String(
+            record.Leg_Length_Fraction ??
+            record["Leg Length Fraction"] ??
+            initial.legLengthFraction ??
+            ""
+          );
           initial.notes = record.Reduction_Note || initial.notes;
           initial.adjustNotes = initial.adjustNotes;
           if (initial.secondaryProductId && !initial.secondaryProductName) {
@@ -951,7 +1094,10 @@
             if (productRecord?.Product_Name && !initial.productName) {
               setForm(prev => ({ ...prev, productName: productRecord.Product_Name }));
             }
-            if (productRecord?.Door_Type && !initial.doorType) {
+            const gateDoorType = getGateDoorTypeFromProduct(record.Product_Category, productRecord?.Door_Type);
+            if (gateDoorType) {
+              setForm(prev => ({ ...prev, doorType: gateDoorType }));
+            } else if (productRecord?.Door_Type && !initial.doorType) {
               setForm(prev => ({ ...prev, doorType: productRecord.Door_Type }));
             }
           }
@@ -976,16 +1122,86 @@
         }
         return;
       }
+      const allowedIds = new Set(secondaryCandidates.map(c => String(c.id || "").trim()).filter(Boolean));
+      const currentId = String(form.secondaryProductId || "").trim();
 
-      if (!form.secondaryProductId && secondaryCandidates.length) {
+      if (secondaryProductRule.locked) {
+        const forced = secondaryCandidates[0] || null;
+        if (!forced) return;
+        if (currentId !== forced.id) {
+          setForm(prev => ({
+            ...prev,
+            secondaryProductId: forced.id,
+            secondaryProductName: prev.secondaryProductName || forced.name || forced.id
+          }));
+        }
+        return;
+      }
+
+      if (!secondaryProductRule.allowEmpty && !currentId && secondaryCandidates.length) {
         const first = secondaryCandidates[0];
         setForm(prev => ({
           ...prev,
           secondaryProductId: first.id,
-          secondaryProductName: first.name || first.id
+          secondaryProductName: prev.secondaryProductName || first.name || first.id
+        }));
+        return;
+      }
+
+      if (currentId && !allowedIds.has(currentId)) {
+        const fallback = secondaryCandidates[0] || { id: "", name: "" };
+        setForm(prev => ({
+          ...prev,
+          secondaryProductId: fallback.id,
+          secondaryProductName: prev.secondaryProductName || fallback.name || fallback.id
         }));
       }
-    }, [requiresSecondaryProduct, form.doorType, form.secondaryProductId]);
+    }, [requiresSecondaryProduct, form.doorType, form.secondaryProductId, form.secondaryProductName]);
+
+    useEffect(() => {
+      let cancelled = false;
+
+      const loadSecondaryProductDescription = async () => {
+        if (!requiresSecondaryProduct) return;
+        const secondaryId = String(form.secondaryProductId || "").trim();
+        if (!secondaryId) {
+          if (form.secondaryProductName) {
+            setForm(prev => ({ ...prev, secondaryProductName: "" }));
+          }
+          return;
+        }
+        if (!hasZoho || !ZOHO?.CRM?.API?.searchRecord) return;
+
+        try {
+          const resp = await ZOHO.CRM.API.searchRecord({
+            Entity: CONFIG.steelProductsModule,
+            Type: "criteria",
+            Query: `(Name:equals:${secondaryId})`
+          });
+          const rec = resp?.data?.[0] || null;
+          const desc = String(rec?.Description || "").trim();
+          if (cancelled) return;
+          setForm(prev => {
+            if (String(prev.secondaryProductId || "").trim() !== secondaryId) return prev;
+            const nextName = desc || secondaryId;
+            if (String(prev.secondaryProductName || "") === nextName) return prev;
+            return { ...prev, secondaryProductName: nextName };
+          });
+        } catch (_err) {
+          if (cancelled) return;
+          setForm(prev => {
+            if (String(prev.secondaryProductId || "").trim() !== secondaryId) return prev;
+            if (String(prev.secondaryProductName || "") === secondaryId) return prev;
+            return { ...prev, secondaryProductName: secondaryId };
+          });
+        }
+      };
+
+      loadSecondaryProductDescription();
+      return () => {
+        cancelled = true;
+      };
+    }, [requiresSecondaryProduct, form.secondaryProductId, hasZoho]);
 
     const statusLabel = (() => {
       if (loadingState === "loading") return "Loading order item...";
@@ -1002,8 +1218,19 @@
       const reductionFields = {};
 
       Object.keys(currentForm).forEach(key => {
+        if (key === "operator") {
+          if (isDoubleGateDoorType(currentForm.doorType)) {
+            reductionFields.Operator = currentForm[key];
+          }
+          return;
+        }
+
         if (key === "hinge") {
           const hingeValue = currentForm[key];
+          if (isDoubleGateDoorType(currentForm.doorType)) {
+            reductionFields.Hinge = hingeValue;
+            return;
+          }
           reductionFields[operatorMode ? "Operator" : "Hinge"] = hingeValue;
           return;
         }
@@ -1016,7 +1243,17 @@
         );
 
         if (hasField) {
-          update[map] = value;
+          let writeValue = value;
+          // Keep an originally-empty Double_Door_Type empty instead of persisting a UI fallback like "Single...".
+          if (
+            key === "doorType" &&
+            map === "Double_Door_Type" &&
+            !String(orderItem?.[map] ?? "").trim() &&
+            isSingleDoorTypeValue(value)
+          ) {
+            writeValue = orderItem?.[map] ?? "";
+          }
+          update[map] = writeValue;
         } else {
           const mappedKey = REDUCTION_FIELD_MAP[key] || key;
           reductionFields[mappedKey] = value;
@@ -1099,7 +1336,14 @@
       }
     };
 
-    const styleCode = product?.Style_Code || product?.Reduction_Style_Code || "";
+    const productCategory = String(
+      orderItem?.Product_Category?.name ??
+      orderItem?.Product_Category?.value ??
+      orderItem?.Product_Category ??
+      ""
+    ).trim().toLowerCase();
+    const isSecurityGate = productCategory === "security gate";
+    const reductionStyleCode = String(product?.Reduction_Style_Code || "").trim();
     const lockLetter = (() => {
       const backendLock = toBackendLockValue(form.lock);
       if (backendLock === "Marks") return "S";
@@ -1107,14 +1351,16 @@
       if (backendLock === "Four Way") return "F";
       return "";
     })();
+    const computedProductId = isSecurityGate
+      ? reductionStyleCode
+      : (reductionStyleCode && lockLetter ? `${lockLetter}${reductionStyleCode}` : "");
 
     useEffect(() => {
-      if (!styleCode || !lockLetter) return;
-      const computed = `${lockLetter}${styleCode}`;
-      if (computed !== form.productId) {
-        setForm(prev => ({ ...prev, productId: computed }));
+      if (!computedProductId) return;
+      if (computedProductId !== form.productId) {
+        setForm(prev => ({ ...prev, productId: computedProductId }));
       }
-    }, [styleCode, lockLetter]);
+    }, [computedProductId]);
 
     const lockColorChoices = uniqueStrings([
       ...picklistChoices.lockColor,
@@ -1277,6 +1523,7 @@
                     "select",
                     {
                       value: form.secondaryProductId || "",
+                      disabled: !!secondaryProductRule.locked,
                       onChange: ev => {
                         const selectedId = ev.target.value;
                         const selected = secondaryCandidates.find(c => c.id === selectedId);
@@ -1287,7 +1534,9 @@
                         }));
                       }
                     },
-                    e("option", { value: "" }, "Select"),
+                    secondaryProductRule.allowEmpty
+                      ? e("option", { value: "" }, "Select")
+                      : null,
                     ...secondaryCandidates.map(c =>
                       e("option", { key: c.id, value: c.id }, c.id)
                     )
@@ -1303,6 +1552,32 @@
                     value: form.secondaryProductName || "",
                     readOnly: true
                   })
+                )
+              : null,
+            isDoubleGateDoorType(form.doorType)
+              ? e(
+                  "div",
+                  { className: "field dim" },
+                  e("label", null, "Leg Length:"),
+                  e(
+                    "div",
+                    { className: "dim-row leg-length-row" },
+                    e("input", {
+                      value: form.legLength || "",
+                      onChange: ev => setField("legLength", ev.target.value)
+                    }),
+                    e(
+                      "select",
+                      {
+                        value: form.legLengthFraction || "",
+                        onChange: ev => setField("legLengthFraction", ev.target.value)
+                      },
+                      e("option", { value: "" }, ""),
+                      ...LEG_LENGTH_FRACTION_OPTIONS.map(opt =>
+                        e("option", { key: opt.value, value: opt.value }, opt.label)
+                      )
+                    )
+                  )
                 )
               : null,
             e(
@@ -1416,6 +1691,57 @@
                 )
               )
             ),
+            (!isOperatorMode || hasSeparateHingeAndOperator)
+              ? e(
+                  "div",
+                  { className: "field" },
+                  e("label", null, "Hinge:"),
+                  e(
+                    "select",
+                    {
+                      value: form.hinge || "",
+                      onChange: ev => setField("hinge", ev.target.value)
+                    },
+                    e("option", { value: "" }, "Select"),
+                    e("option", { value: "Left" }, "Left"),
+                    e("option", { value: "Right" }, "Right")
+                  )
+                )
+              : null,
+            hasSeparateHingeAndOperator
+              ? e(
+                  "div",
+                  { className: "field" },
+                  e("label", null, "Operator:"),
+                  e(
+                    "select",
+                    {
+                      value: form.operator || "",
+                      onChange: ev => setField("operator", ev.target.value)
+                    },
+                    e("option", { value: "" }, "Select"),
+                    e("option", { value: "Left" }, "Left"),
+                    e("option", { value: "Right" }, "Right")
+                  )
+                )
+              : null,
+            !hasSeparateHingeAndOperator && isOperatorMode
+              ? e(
+                  "div",
+                  { className: "field" },
+                  e("label", null, "Operator:"),
+                  e(
+                    "select",
+                    {
+                      value: form.hinge || "",
+                      onChange: ev => setField("hinge", ev.target.value)
+                    },
+                    e("option", { value: "" }, "Select"),
+                    e("option", { value: "Left" }, "Left"),
+                    e("option", { value: "Right" }, "Right")
+                  )
+                )
+              : null,
             e(
               "div",
               { className: "field" },
@@ -1446,21 +1772,6 @@
                 ...handleTypeChoices.map(value =>
                   e("option", { key: value, value }, value)
                 )
-              )
-            ),
-            e(
-              "div",
-              { className: "field" },
-              e("label", null, isOperatorMode ? "Operator:" : "Hinge:"),
-              e(
-                "select",
-                {
-                  value: form.hinge || "",
-                  onChange: ev => setField("hinge", ev.target.value)
-                },
-                e("option", { value: "" }, "Select"),
-                e("option", { value: "Left" }, "Left"),
-                e("option", { value: "Right" }, "Right")
               )
             )
           ),
