@@ -51,6 +51,20 @@
     return null;
   };
 
+  const formatUsDate = value => {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:$|T)/);
+    if (isoMatch) {
+      return `${isoMatch[2]}/${isoMatch[3]}/${isoMatch[1]}`;
+    }
+    const slashMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (slashMatch) {
+      return `${slashMatch[1].padStart(2, "0")}/${slashMatch[2].padStart(2, "0")}/${slashMatch[3]}`;
+    }
+    return raw;
+  };
+
   const productPhotoCache = new Map();
 
   const fetchProductPhotoForPdf = async productZohoRecordId => {
@@ -105,6 +119,9 @@
     const M = 20;
     const PW = 612;
     const PH = 792;
+    const QA_FOOTER_HEIGHT = 52;
+    const QA_FOOTER_GAP = 6;
+    const QA_FOOTER_TOP = M + QA_FOOTER_HEIGHT;
 
     const text = (t, x, y, size = 10, f = font, color = black) => {
       page.drawText(String(t || ""), { x, y, size, font: f, color });
@@ -119,6 +136,74 @@
       drawLine(x, y + h, x + w, y + h, lw);
       drawLine(x, y, x, y + h, lw);
       drawLine(x + w, y, x + w, y + h, lw);
+    };
+
+    const drawQaFooter = () => {
+      const footerY = M;
+      const footerW = PW - M * 2;
+      const footerH = QA_FOOTER_HEIGHT;
+      const blockGap = 10;
+      const blockW = (footerW - blockGap) / 2;
+      const rowCount = 4;
+      const rowH = footerH / rowCount;
+      const leftX = M;
+      const rightX = M + blockW + blockGap;
+      const labelRatio = 0.28;
+      const dateRatio = 0.30;
+      const byRatio = 0.2;
+
+      const drawFooterGrid = (x, y, w, h) => {
+        drawRect(x, y, w, h, 1);
+        for (let i = 1; i < rowCount; i += 1) {
+          drawLine(x, y + i * rowH, x + w, y + i * rowH, 1, colorBorder);
+        }
+      };
+
+      const drawFooterRow = (x, y, w, label, opts = {}) => {
+        const showBy = opts.showBy !== false;
+        const labelW = w * labelRatio;
+        const dateW = w * dateRatio;
+        const byW = showBy ? w * byRatio : 0;
+        const c1 = x + labelW;
+        const c2 = c1 + dateW;
+        const c3 = c2 + byW;
+
+        drawLine(c1, y, c1, y + rowH, 1, colorBorder);
+        drawLine(c2, y, c2, y + rowH, 1, colorBorder);
+        if (showBy) {
+          drawLine(c3, y, c3, y + rowH, 1, colorBorder);
+        }
+
+        text(label, x + 3, y + rowH - 9, 7.5, fontBold, colorText);
+        text("Date:", c1 + 3, y + rowH - 9, 7.5, fontBold, colorText);
+        if (showBy) {
+          text("By:", c2 + 3, y + rowH - 9, 7.5, fontBold, colorText);
+          text("QCd:", c3 + 3, y + rowH - 9, 7.5, fontBold, colorText);
+        } else {
+          text("QCd:", c2 + 3, y + rowH - 9, 7.5, fontBold, colorText);
+        }
+      };
+
+      drawFooterGrid(leftX, footerY, blockW, footerH);
+      drawFooterGrid(rightX, footerY, blockW, footerH);
+
+      [
+        { label: "Reduction" },
+        { label: "Cut" },
+        { label: "Weld" },
+        { label: "Grind" }
+      ].forEach((row, idx) => {
+        drawFooterRow(leftX, footerY + footerH - rowH * (idx + 1), blockW, row.label);
+      });
+
+      [
+        { label: "Paint" },
+        { label: "Keying" },
+        { label: "Assmb" },
+        { label: "Tubes Paint", showBy: false }
+      ].forEach((row, idx) => {
+        drawFooterRow(rightX, footerY + footerH - rowH * (idx + 1), blockW, row.label, row);
+      });
     };
 
     const safe = v => (v === null || v === undefined ? "" : String(v));
@@ -189,6 +274,7 @@
     const pageText = `Side ${pageNumber} of ${totalPages}`;
     const pageTextW = font.widthOfTextAtSize(pageText, 8);
     text(pageText, PW - M - pageTextW - 8, titleBarY + 6, 8, font, colorTitleText);
+    drawQaFooter();
 
     // Header fields
     const headerTop = titleBarY - 8;
@@ -250,8 +336,8 @@
       safe(raw["Product ID"])
     ].filter(Boolean).join(" - ");
 
-    const dueDate = override.dueDate || raw["Due Date"] || "";
-    const issueDate = override.issueDate || raw["Issue Date"] || "";
+    const dueDate = formatUsDate(override.dueDate || raw["Due Date"] || "");
+    const issueDate = formatUsDate(override.issueDate || raw["Issue Date"] || "");
 
     const leftFields = [
       ["Job Number / Name", `${safe(jobNumber)}  ${safe(jobName)}`, { maxLines: 1 }],
@@ -327,13 +413,13 @@
       }
     }
 
-    const NOTES_SECTION_GAP = 4;
-    const NOTES_SECTION_MIN_MARGIN = 20;
-    const NOTES_SECTION_MIN_HEIGHT = 44;
-    const NOTES_SECTION_LINE_STEP = 10;
-    const NOTES_SECTION_BASE_HEIGHT = 96;
+    const NOTES_SECTION_GAP = 2;
+    const NOTES_SECTION_MIN_MARGIN = QA_FOOTER_TOP + QA_FOOTER_GAP;
+    const NOTES_SECTION_MIN_HEIGHT = 38;
+    const NOTES_SECTION_LINE_STEP = 9;
+    const NOTES_SECTION_BASE_HEIGHT = 82;
     const NOTES_SECTION_BASE_LINES = 5;
-    const MIN_CONTENT_Y = M;
+    const MIN_CONTENT_Y = QA_FOOTER_TOP + QA_FOOTER_GAP;
 
     const startContinuationPage = () => {
       page = pdfDoc.addPage([612, 792]);
@@ -351,27 +437,30 @@
       text(`${titleText} (continued)`, M + 8, contTitleBarY + 5, 10, fontBold, colorTitleText);
       const contPageTextW = font.widthOfTextAtSize(pageText, 8);
       text(pageText, PW - M - contPageTextW - 8, contTitleBarY + 6, 8, font, colorTitleText);
+      drawQaFooter();
       return contTitleBarY - 14;
     };
 
     // Section title helper
-    let y = Math.min(yL, yR) - 10;
+    let y = Math.min(yL, yR) - 6;
 
     const sectionTitle = titleText => {
       if (y - 16 < MIN_CONTENT_Y) {
         y = startContinuationPage();
       }
-      y -= 6;
+      y -= 4;
       text(titleText, M, y, 10, fontBold, colorText);
       drawLine(M, y - 2, PW - M, y - 2, 0.8, colorBorder);
-      y -= 8;
+      y -= 5;
       return true;
     };
 
     const drawTable = rows => {
       const tableFontSize = 8;
       const headerFontSize = 8;
-      const lineHeight = 10;
+      const lineHeight = 8.5;
+      const cellPad = 2;
+      const rowTopInset = 8;
       const headerBg = colorHeaderBg;
       const col = { qty: 20, desc: 150, loc: 50, size: 80 };
       const notesW = PW - M * 2 - (col.qty + col.desc + col.loc + col.size);
@@ -382,7 +471,7 @@
         M + col.qty + col.desc + col.loc,
         M + col.qty + col.desc + col.loc + col.size
       ];
-      const headerH = 16;
+      const headerH = 13;
       const drawHeader = () => {
         page.drawRectangle({
           x: M,
@@ -397,25 +486,25 @@
         page.drawLine({ start: { x: colX[2], y: y - headerH }, end: { x: colX[2], y }, thickness: 1, color: colorBorder });
         page.drawLine({ start: { x: colX[3], y: y - headerH }, end: { x: colX[3], y }, thickness: 1, color: colorBorder });
         page.drawLine({ start: { x: colX[4], y: y - headerH }, end: { x: colX[4], y }, thickness: 1, color: colorBorder });
-        text("Qty.", colX[0] + 4, y - 12, headerFontSize, fontBold, colorText);
-        text("Component Description", colX[1] + 4, y - 12, headerFontSize, fontBold, colorText);
-        text("Location", colX[2] + 4, y - 12, headerFontSize, fontBold, colorText);
-        text("Size", colX[3] + 4, y - 12, headerFontSize, fontBold, colorText);
-        text("Notes", colX[4] + 4, y - 12, headerFontSize, fontBold, colorText);
+        text("Qty.", colX[0] + cellPad, y - 9.5, headerFontSize, fontBold, colorText);
+        text("Component Description", colX[1] + cellPad, y - 9.5, headerFontSize, fontBold, colorText);
+        text("Location", colX[2] + cellPad, y - 9.5, headerFontSize, fontBold, colorText);
+        text("Size", colX[3] + cellPad, y - 9.5, headerFontSize, fontBold, colorText);
+        text("Notes", colX[4] + cellPad, y - 9.5, headerFontSize, fontBold, colorText);
         y -= headerH;
       };
 
-      if (y - (headerH + 12) < MIN_CONTENT_Y) {
+      if (y - (headerH + 10) < MIN_CONTENT_Y) {
         y = startContinuationPage();
       }
       drawHeader();
 
       let rendered = 0;
       rows.forEach(r => {
-        const descLines = wrapText(safe(r.desc), col.desc - 8, font, tableFontSize);
-        const notesLines = wrapText(safe(r.notes), notesW - 8, font, tableFontSize);
+        const descLines = wrapText(safe(r.desc), col.desc - cellPad * 2, font, tableFontSize);
+        const notesLines = wrapText(safe(r.notes), notesW - cellPad * 2, font, tableFontSize);
         const maxLines = Math.max(descLines.length, notesLines.length, 1);
-        const rowH = 12 + (maxLines - 1) * lineHeight;
+        const rowH = 10 + (maxLines - 1) * lineHeight;
 
         if (y - rowH < MIN_CONTENT_Y) {
           y = startContinuationPage();
@@ -435,17 +524,17 @@
         page.drawLine({ start: { x: colX[3], y: y - rowH }, end: { x: colX[3], y }, thickness: 1, color: colorGrid });
         page.drawLine({ start: { x: colX[4], y: y - rowH }, end: { x: colX[4], y }, thickness: 1, color: colorGrid });
 
-        text(safe(r.qty), colX[0] + 4, y - 10, tableFontSize, font, colorText);
-        descLines.forEach((ln, idx) => text(ln, colX[1] + 4, y - 10 - idx * lineHeight, tableFontSize, font, colorText));
-        text(safe(r.loc), colX[2] + 4, y - 10, tableFontSize, font, colorText);
-        text(safe(r.size), colX[3] + 4, y - 10, tableFontSize, font, colorText);
-        notesLines.forEach((ln, idx) => text(ln, colX[4] + 4, y - 10 - idx * lineHeight, tableFontSize, font, colorText));
+        text(safe(r.qty), colX[0] + cellPad, y - rowTopInset, tableFontSize, font, colorText);
+        descLines.forEach((ln, idx) => text(ln, colX[1] + cellPad, y - rowTopInset - idx * lineHeight, tableFontSize, font, colorText));
+        text(safe(r.loc), colX[2] + cellPad, y - rowTopInset, tableFontSize, font, colorText);
+        text(safe(r.size), colX[3] + cellPad, y - rowTopInset, tableFontSize, font, colorText);
+        notesLines.forEach((ln, idx) => text(ln, colX[4] + cellPad, y - rowTopInset - idx * lineHeight, tableFontSize, font, colorText));
 
         y -= rowH;
         rendered += 1;
       });
 
-      y -= 8;
+      y -= 4;
       return rendered;
     };
 
@@ -491,7 +580,15 @@
     }
 
     // Options / notes section
-    const colW = (PW - M * 2) / 3;
+    const notesTotalW = PW - M * 2;
+    const optionsW = Math.floor(notesTotalW * 0.28);
+    const notesGap = 12;
+    const remainingW = notesTotalW - optionsW - notesGap * 2;
+    const orderW = Math.floor(remainingW / 2);
+    const clearW = remainingW - orderW;
+    const optionsX = M;
+    const orderX = optionsX + optionsW + notesGap;
+    const clearX = orderX + orderW + notesGap;
     const lockColorText = safe(raw["Lock Color"] || raw.Lock_Color || "");
     const handleTypeText = safe(raw["Handle Type"] || raw.Handle_Type || "");
     const optionList = String(raw.Door_Gate_Option || raw.Options || raw.Option || "")
@@ -503,9 +600,9 @@
     if (handleTypeText) optionLines.push(`Handle Type: ${handleTypeText}`);
     optionLines.push(...optionList);
     if (!optionLines.length) optionLines.push("None");
-    const optLines = optionLines.flatMap(line => wrapText(line, colW - 12, font, 9));
-    const orderLines = wrapText(safe(raw["Order Notes"] || ""), colW - 12, font, 9);
-    const clearLines = wrapText(safe(raw.ClearanceNotes || "No Adjustment Required"), colW - 12, fontItalic, 9);
+    const optLines = optionLines.flatMap(line => wrapText(line, optionsW - 12, font, 9));
+    const orderLines = wrapText(safe(raw["Order Notes"] || ""), orderW - 12, fontBold, 9);
+    const clearLines = wrapText(safe(raw.ClearanceNotes || "No Adjustment Required"), clearW - 12, fontBold, 9);
     let optIndex = 0;
     let orderIndex = 0;
     let clearIndex = 0;
@@ -532,30 +629,53 @@
         Math.min(desiredSectionHeight, availableSectionHeight)
       );
       const sectionY = Math.floor(sectionTop - sectionHeight);
-      const sectionMaxLines = Math.max(1, Math.floor((sectionHeight - 28) / NOTES_SECTION_LINE_STEP));
+      const sectionMaxLines = Math.max(1, Math.floor((sectionHeight - 22) / NOTES_SECTION_LINE_STEP));
 
-      page.drawRectangle({ x: M, y: sectionY, width: colW, height: sectionHeight, color: colorPanel, borderColor: colorBorder, borderWidth: 1 });
-      page.drawRectangle({ x: M + colW, y: sectionY, width: colW, height: sectionHeight, color: colorPanel, borderColor: colorBorder, borderWidth: 1 });
-      page.drawRectangle({ x: M + colW * 2, y: sectionY, width: colW, height: sectionHeight, color: colorPanel, borderColor: colorBorder, borderWidth: 1 });
-      const sectionLabelY = sectionY + sectionHeight - 16;
-      text("Options", M + 6, sectionLabelY, 8, fontBold, colorMuted);
-      text("Order Notes", M + colW + 6, sectionLabelY, 8, fontBold, colorMuted);
-      text("Clearance Adjustment Notes", M + colW * 2 + 6, sectionLabelY, 8, fontBold, colorMuted);
-      const sectionLineY = sectionLabelY - 16;
+      const sectionLabelY = sectionY + sectionHeight - 12;
+      const sectionLineY = sectionLabelY - 12;
+      const optionsHeaderTopY = sectionLabelY + 8;
+      const optionsLinesTopY = sectionLineY;
+      const optionsRenderedCount = Math.min(sectionMaxLines, optLines.length - optIndex);
+      const optionsLastLineY = optionsRenderedCount > 0
+        ? optionsLinesTopY - (optionsRenderedCount - 1) * NOTES_SECTION_LINE_STEP
+        : optionsLinesTopY;
+      const optionsBottomY = Math.max(
+        sectionY,
+        optionsLastLineY - 12
+      );
+      const optionsHeight = Math.max(38, optionsHeaderTopY - optionsBottomY);
+      page.drawRectangle({
+        x: optionsX,
+        y: optionsBottomY,
+        width: optionsW,
+        height: optionsHeight,
+        color: rgb(1, 1, 1),
+        borderColor: colorBorder,
+        borderWidth: 1
+      });
+      text("Options", optionsX + 6, sectionLabelY, 8, fontBold, colorMuted);
+      text("Order Notes", orderX + 6, sectionLabelY, 8, fontBold, colorMuted);
+      text("Clearance Adjustment Notes", clearX + 6, sectionLabelY, 8, fontBold, colorMuted);
+      drawLine(optionsX, sectionLabelY - 4, optionsX + optionsW, sectionLabelY - 4, 0.8, colorBorder);
 
-      const drawLines = (x, lines, startIndex, f, color) => {
+      const drawLines = (x, lines, startIndex, f, color, opts = {}) => {
         const chunk = lines.slice(startIndex, startIndex + sectionMaxLines);
-        chunk.forEach((ln, idx) =>
-          text(ln, x, sectionLineY - idx * NOTES_SECTION_LINE_STEP, 9, f, color)
-        );
+        chunk.forEach((ln, idx) => {
+          const yPos = sectionLineY - idx * NOTES_SECTION_LINE_STEP;
+          text(ln, x, yPos, 9, f, color);
+          if (opts.underline && String(ln || "").trim()) {
+            const lineWidth = f.widthOfTextAtSize(String(ln), 9);
+            drawLine(x, yPos - 1, x + lineWidth, yPos - 1, 0.8, color);
+          }
+        });
         return startIndex + chunk.length;
       };
 
-      optIndex = drawLines(M + 6, optLines, optIndex, font, colorText);
-      orderIndex = drawLines(M + colW + 6, orderLines, orderIndex, font, colorText);
-      clearIndex = drawLines(M + colW * 2 + 6, clearLines, clearIndex, fontItalic, colorText);
+      optIndex = drawLines(optionsX + 6, optLines, optIndex, font, colorText);
+      orderIndex = drawLines(orderX + 6, orderLines, orderIndex, fontBold, colorText, { underline: true });
+      clearIndex = drawLines(clearX + 6, clearLines, clearIndex, fontBold, colorText);
 
-      y = sectionY - 4;
+      y = sectionY - 2;
       if (optIndex < optLines.length || orderIndex < orderLines.length || clearIndex < clearLines.length) {
         y = startContinuationPage();
       }
@@ -644,15 +764,17 @@
   };
 
   const REDUCTION_FIELD_MAP = {
+    jobNumber: "Job Number",
+    jobName: "Job Name",
     hinge: "Hinge",
     operator: "Operator",
     lockOk: "LockOK",
     exDboltTop: "ExDBLoc",
     exDboltBottom: "ExDBLocB",
-    exDboltClearance: "ExDBLocFrac",
+    exDboltClearance: "ExDBProj",
     exKnobTop: "ExKnobLoc",
     exKnobBottom: "ExKnobLocB",
-    exKnobClearance: "ExKnobLocFrac",
+    exKnobClearance: "ExKnobProj",
     legLength: "Leg Length",
     legLengthFraction: "Leg Length Fraction",
     secondaryProductId: "Secondary Product ID",
@@ -747,6 +869,18 @@
       const mappedKey = REDUCTION_FIELD_MAP_REVERSE[key] || key;
       normalized[mappedKey] = rawFields[key];
     });
+    if (
+      (normalized.exDboltClearance === undefined || normalized.exDboltClearance === "") &&
+      rawFields.ExDBLocFrac !== undefined
+    ) {
+      normalized.exDboltClearance = rawFields.ExDBLocFrac;
+    }
+    if (
+      (normalized.exKnobClearance === undefined || normalized.exKnobClearance === "") &&
+      rawFields.ExKnobLocFrac !== undefined
+    ) {
+      normalized.exKnobClearance = rawFields.ExKnobLocFrac;
+    }
     if (!Array.isArray(normalized.doorGateOption)) {
       if (Array.isArray(rawFields.Door_Gate_Option)) {
         normalized.doorGateOption = rawFields.Door_Gate_Option;
@@ -763,8 +897,6 @@
   };
 
   const ORDER_ITEM_MAP = {
-    jobNumber: "Job_Number",
-    jobName: "Name",
     issueDate: "Issue_Date",
     dueDate: "Order_Closing_Date",
     doorType: "Double_Door_Type",
@@ -790,13 +922,19 @@
   // Backend/calculation engine expects canonical names.
   const UI_TO_BACKEND_LOCK = {
     Marks: "Marks",
-    Kwikset: "Yale",
+    Kwikset: "Kwikset",
+    "Kwikset 1": "Kwikset 1",
+    Yale: "Kwikset",
+    "Yale 1": "Kwikset 1",
     Fourway: "Four Way"
   };
 
   const BACKEND_TO_UI_LOCK = {
     Marks: "Marks",
     Yale: "Kwikset",
+    Kwikset: "Kwikset",
+    "Yale 1": "Kwikset 1",
+    "Kwikset 1": "Kwikset 1",
     "Four Way": "Fourway"
   };
 
@@ -1072,12 +1210,9 @@
               if (orderRec?.name) {
                 setForm(prev => ({ ...prev, jobNumber: orderRec.name }));
               }
-              const accountName =
-                orderRec?.Account_Name?.name ||
-                orderRec?.Account_Name ||
-                "";
-              if (accountName) {
-                setForm(prev => ({ ...prev, jobName: accountName }));
+              const orderNickname = orderRec?.Nickname || "";
+              if (orderNickname) {
+                setForm(prev => ({ ...prev, jobName: orderNickname }));
               }
             } catch (err) {
               setError(err?.message || "Failed to load Order record.");
@@ -1244,6 +1379,9 @@
 
         if (hasField) {
           let writeValue = value;
+          if (key === "lock") {
+            writeValue = toBackendLockValue(value);
+          }
           // Keep an originally-empty Double_Door_Type empty instead of persisting a UI fallback like "Single...".
           if (
             key === "doorType" &&
@@ -1347,7 +1485,7 @@
     const lockLetter = (() => {
       const backendLock = toBackendLockValue(form.lock);
       if (backendLock === "Marks") return "S";
-      if (backendLock === "Yale") return "Y";
+      if (backendLock === "Kwikset") return "Y";
       if (backendLock === "Four Way") return "F";
       return "";
     })();
@@ -1367,8 +1505,8 @@
       form.lockColor
     ]);
     const lockChoices = uniqueStrings([
-      ...picklistChoices.lock,
-      form.lock
+      ...picklistChoices.lock.map(toUiLockValue),
+      toUiLockValue(form.lock)
     ]);
     const colorChoices = uniqueStrings([
       ...picklistChoices.color,
