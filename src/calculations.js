@@ -611,6 +611,7 @@ export function GetLockSize(ctx, parmOption) {
   let result = 0;
 
   switch (ctx.gblLock) {
+    case "Kwikset":
     case "Yale":
       if (parmOption === "Width") {
         result = 4.4375 - (ctx.gblFrameWidth / 2);
@@ -621,6 +622,7 @@ export function GetLockSize(ctx, parmOption) {
       }
       break;
 
+    case "Kwikset 1":
     case "Yale 1":
       if (parmOption === "Width") {
         result = 4.4375 - (ctx.gblFrameWidth / 2);
