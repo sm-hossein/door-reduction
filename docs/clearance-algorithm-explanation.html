@@ -127,14 +127,14 @@
 </head>
 <body>
   <h1>Door Reduction Clearance Algorithm</h1>
-  <p class="subtitle">Explanation of the original VB implementation in <code>Source/ClearanceCheck.bas</code> and the converted Node implementation in <code>src/clearanceCheck.js</code>.</p>
+  <p class="subtitle">Explanation of the original VB implementation in <code>legacy-access-vba/ClearanceCheck.bas</code> and the converted Node implementation in <code>src/clearanceCheck.js</code>.</p>
 
   <div class="summary">
     <p><strong>Main idea:</strong> the clearance algorithm checks whether the new storm/security door hardware can physically clear the customer's existing lock hardware and glass clearance. If the default configuration does not work, it tries a fixed sequence of accepted modifications and returns the first one that passes.</p>
   </div>
 
   <h2>Where The Algorithm Lives</h2>
-  <p>The original Access/VB code is in <code>Source/ClearanceCheck.bas</code>. The converted JavaScript version is in <code>src/clearanceCheck.js</code>. In the Node flow, the clearance input is assembled in <code>src/calcDoorOutput.js</code> by <code>buildClearanceInput()</code>, then passed into <code>chkClearance(input)</code>.</p>
+  <p>The original Access/VB code is in <code>legacy-access-vba/ClearanceCheck.bas</code>. The converted JavaScript version is in <code>src/clearanceCheck.js</code>. In the Node flow, the clearance input is assembled in <code>src/calcDoorOutput.js</code> by <code>buildClearanceInput()</code>, then passed into <code>chkClearance(input)</code>.</p>
 
   <pre>chkClearance()
   -> chkDBKLoc()
