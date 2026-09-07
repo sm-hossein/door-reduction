@@ -6,3 +6,21 @@ pdf/
 .DS_Store
 Thumbs.db
 *.zip
+/scripts/Tokens.txt
+/crm functions/
+
+# Local databases and temporary extraction output
+*.mdb
+*.accdb
+/tmp_pdf_extract/
+
+# Generated documentation
+/docs/clearance-algorithm-explanation.pdf
+
+# OAuth credentials and grant artifacts (scripts remain trackable)
+/scripts/*token*.txt
+/scripts/*grant-code*.txt
+
+# Reproducible legacy widget build output
+/public/zoho-widget/Awning Reduction/app/
+/public/zoho-widget/NewCostumer/app/
