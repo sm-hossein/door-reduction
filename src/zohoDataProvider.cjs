@@ -330,6 +330,13 @@ function normalizeDoor(context, record, steelProductName, resolvedDoorType) {
   const itemType = record.Item_Type || {};
   const lockTypeRaw = getDoorField(record, jsonObj, "Lock_Type", DOOR_FIELD_DEFAULTS["Lock"]);
   const lockType = normalizeLockType(context, lockTypeRaw);
+  const normalizedDoorType = normalizeCrmScalar(
+    resolvedDoorType ||
+    record.Double_Door_Type ||
+    getDoorField(record, jsonObj, "Door Type", "") ||
+    getDoorField(record, jsonObj, "Type", "") ||
+    "Single"
+  );
   const doorGateOptions = normalizeStringArray(
     getDoorField(
       record,
@@ -341,9 +348,19 @@ function normalizeDoor(context, record, steelProductName, resolvedDoorType) {
 
   return {
     "Door ID": String(record.id || DOOR_FIELD_DEFAULTS["Door ID"]),
-    "Job Number": String(record.id || DOOR_FIELD_DEFAULTS["Job Number"]),
-    "Job Name": String(record.Name || DOOR_FIELD_DEFAULTS["Job Name"]),
-    "Order Notes": String(record.Order_Note || record.Reduction_Note || record.Discount_Note || DOOR_FIELD_DEFAULTS["Order Notes"]),
+    "Job Number": String(getDoorField(
+      record,
+      jsonObj,
+      "Job Number",
+      record.Job_Number || (record.Order && record.Order.name) || record.id || DOOR_FIELD_DEFAULTS["Job Number"]
+    )),
+    "Job Name": String(getDoorField(
+      record,
+      jsonObj,
+      "Job Name",
+      record.Name || DOOR_FIELD_DEFAULTS["Job Name"]
+    )),
+    "Order Notes": String(record.Reduction_Note || DOOR_FIELD_DEFAULTS["Order Notes"]),
     "Issue Date": String(record.Created_Time || DOOR_FIELD_DEFAULTS["Issue Date"]),
     "Due Date": String(record.Order_Closing_Date || DOOR_FIELD_DEFAULTS["Due Date"]),
     "Quantity": String(record.Qty || record.Qty1 || DOOR_FIELD_DEFAULTS["Quantity"]),
@@ -352,7 +369,7 @@ function normalizeDoor(context, record, steelProductName, resolvedDoorType) {
     "Hinge": normalizeCrmScalar(getDoorField(record, jsonObj, "Hinge", DOOR_FIELD_DEFAULTS["Hinge"])),
     "Operator": normalizeCrmScalar(getDoorField(record, jsonObj, "Operator", DOOR_FIELD_DEFAULTS["Operator"])),
     "Color": normalizeCrmScalar(record.Color || DOOR_FIELD_DEFAULTS["Color"]),
-    "Type": normalizeCrmScalar(resolvedDoorType || record.Double_Door_Type || DOOR_FIELD_DEFAULTS["Type"]),
+    "Type": normalizedDoorType,
     "Width": String(getDoorField(record, jsonObj, "Width", DOOR_FIELD_DEFAULTS["Width"])),
     "Width Fraction": String(getDoorField(record, jsonObj, "Width Fraction", DOOR_FIELD_DEFAULTS["Width Fraction"])),
     "Height": String(getDoorField(record, jsonObj, "Height", DOOR_FIELD_DEFAULTS["Height"])),
@@ -409,7 +426,11 @@ function normalizeLockType(context, lockType) {
     case "four way":
       return "Four Way";
     case "kwikset":
-      return "Yale";
+    case "yale":
+      return "Kwikset";
+    case "kwikset 1":
+    case "yale 1":
+      return "Kwikset 1";
     default:
       return value;
   }

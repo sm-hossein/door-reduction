@@ -75,37 +75,6 @@ export function CreateContext(log) {
   };
 }
 
-function toNumber(value, fallback = 0) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function toBool(value) {
-  if (typeof value === "boolean") return value;
-  const v = String(value || "").trim().toLowerCase();
-  return v === "true" || v === "1" || v === "-1" || v === "yes";
-}
-
-function toLockTypeCode(lockValue) {
-  const key = String(lockValue || "").trim().toLowerCase();
-  switch (key) {
-    case "four way":
-    case "fourway":
-      return 60;
-    case "yale":
-    case "yale 1":
-      return 61;
-    case "slim line":
-      return 69;
-    case "bee line":
-      return 83;
-    case "deluxe":
-      return 126;
-    default:
-      return 0;
-  }
-}
-
 function normalizeSideLiteLabel(value) {
   const v = String(value || "").trim();
   if (!v) return v;
@@ -160,20 +129,6 @@ export function SetDoorVariables(ctx, door) {
 
   ctx.gblTotalLegLength =
     Number(door["Leg Length"]) + Number(door["Leg Length Fraction"]);
-
-  ctx.clearanceInput = {
-    doorHeight: ctx.gblTotalHeight,
-    lockType: toLockTypeCode(ctx.gblLock),
-    chkLockOK: toBool(door["LockOK"]),
-    ex: {
-      DBLoc: toNumber(door["ExDBLoc"]),
-      DBLocB: toNumber(door["ExDBLocB"]),
-      DBProj: toNumber(door["ExDBLocFrac"]),
-      KLoc: toNumber(door["ExKnobLoc"]),
-      KLocB: toNumber(door["ExKnobLocB"]),
-      KProj: toNumber(door["ExKnobLocFrac"])
-    }
-  };
 }
 
 /**

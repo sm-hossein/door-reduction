@@ -53,6 +53,75 @@ function applySide(ctx, side) {
   }
 }
 
+function toNumber(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function toBool(value) {
+  if (typeof value === "boolean") return value;
+  const v = String(value || "").trim().toLowerCase();
+  return v === "true" || v === "1" || v === "-1" || v === "yes";
+}
+
+function toLockTypeCode(lockValue) {
+  const key = String(lockValue || "").trim().toLowerCase();
+  switch (key) {
+    case "four way":
+    case "fourway":
+      return 60;
+    case "kwikset":
+    case "yale":
+    case "kwikset 1":
+    case "yale 1":
+      return 61;
+    case "slim line":
+      return 69;
+    case "bee line":
+      return 83;
+    case "deluxe":
+      return 126;
+    default:
+      return 0;
+  }
+}
+
+function pickClearanceValue(primaryValue, fallbackValue) {
+  const primary = toNumber(primaryValue, 0);
+  if (primary !== 0) return primary;
+  return toNumber(fallbackValue, 0);
+}
+
+function buildClearanceInput(ctxSide, door, fractions) {
+  const dbLoc = toNumber(door["ExDBLoc"], 0);
+  const dbLocB = toNumber(door["ExDBLocB"], 0);
+  const kLoc = toNumber(door["ExKnobLoc"], 0);
+  const kLocB = toNumber(door["ExKnobLocB"], 0);
+
+  // The current widget stores the user-entered clearance in *LocFrac fields.
+  // Fall back to those values when dedicated projection fields are empty.
+  let dbProj = pickClearanceValue(door["ExDBProj"], door["ExDBLocFrac"]);
+  let kProj = pickClearanceValue(door["ExKnobProj"], door["ExKnobLocFrac"]);
+
+  // Match the VB form preprocessing: if both positions are zero, default projection to 3".
+  if (dbLoc === 0 && dbLocB === 0) dbProj = 3;
+  if (kLoc === 0 && kLocB === 0) kProj = 3;
+
+  return {
+    doorHeight: GetSize(ctxSide, "Total Height", fractions),
+    lockType: toLockTypeCode(door["Lock"]),
+    chkLockOK: toBool(door["LockOK"]),
+    ex: {
+      DBLoc: dbLoc,
+      DBLocB: dbLocB,
+      DBProj: dbProj,
+      KLoc: kLoc,
+      KLocB: kLocB,
+      KProj: kProj
+    }
+  };
+}
+
 /* -------------------------
    EXPORT DOOR DATA (JSON)
 ------------------------- */
@@ -138,7 +207,7 @@ export function ExportDoorDataToJSON(ctx, data, doorId) {
     ctxSide.gblProductID = sideProductId;
     SetProductVariables(ctxSide, sideProduct);
 
-    const clearanceNotes = chkClearance(ctxSide.clearanceInput || {});
+    const clearanceNotes = chkClearance(buildClearanceInput(ctxSide, door, tables.Fractions));
     const buildNotes = GetBuildNotes(ctxSide, tables.Fractions);
     const hinge = GetOptions(ctxSide, "Hinge", tables.ReferenceCodes);
     const lock = GetOptions(ctxSide, "Lock", tables.ReferenceCodes);
