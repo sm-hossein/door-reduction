@@ -360,7 +360,13 @@ Else
 
 '*** If door is the operator, adjust to use the standard glass piece
       If (IsOperator()) Then
-        lclGlassAdjust = gblStandardDrillAt + (lclGlassAdjust / 2)
+'*** LEGACY BUG: This formerly added the adjustment:
+'***   lclGlassAdjust = gblStandardDrillAt + (lclGlassAdjust / 2)
+'*** That moved the drill position in the wrong direction and produced
+'*** nonstandard 27-inch, 29-inch, and 33-inch glass while treating it as standard.
+'*** Subtracting matches the normal standard-glass branch and produces
+'*** the stocked 26-inch, 28-inch, and 32-inch glass widths.
+        lclGlassAdjust = gblStandardDrillAt - (lclGlassAdjust / 2)
         lclDoorWidth = GetSize("Initial Width") - lclCompensate
 
 '*** Not the operator, adjust size differently.  This door will not

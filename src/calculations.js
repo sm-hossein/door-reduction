@@ -438,7 +438,7 @@ export function GetActualWidth(ctx, parmPhase, fractions) {
 
       if (IsOperator(ctx)) {
         lclGlassAdjust =
-          ctx.gblStandardDrillAt + lclGlassAdjust / 2;
+          ctx.gblStandardDrillAt - lclGlassAdjust / 2;
         lclDoorWidth =
           GetSize(ctx, "Initial Width", fractions) - lclCompensate;
       } else {

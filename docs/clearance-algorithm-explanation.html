@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Door Reduction Clearance Algorithm</title>
+  <style>
+    @page {
+      size: Letter;
+      margin: 0.65in;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: #1d252d;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      background: #ffffff;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 24pt;
+      line-height: 1.08;
+      color: #102033;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin: 26px 0 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #c7d0d9;
+      font-size: 14.5pt;
+      color: #18324b;
+    }
+
+    h3 {
+      margin: 18px 0 6px;
+      font-size: 11.5pt;
+      color: #243b53;
+    }
+
+    p {
+      margin: 0 0 9px;
+    }
+
+    ul, ol {
+      margin: 7px 0 12px 22px;
+      padding: 0;
+    }
+
+    li {
+      margin: 3px 0;
+    }
+
+    code {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 9.5pt;
+      background: #f2f5f8;
+      border: 1px solid #d9e1e8;
+      border-radius: 3px;
+      padding: 1px 4px;
+      color: #102033;
+    }
+
+    pre {
+      margin: 8px 0 12px;
+      padding: 10px 12px;
+      overflow: hidden;
+      background: #f6f8fa;
+      border: 1px solid #d9e1e8;
+      border-radius: 5px;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 9.2pt;
+      line-height: 1.35;
+      white-space: pre-wrap;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 14px;
+      font-size: 9.7pt;
+    }
+
+    th, td {
+      padding: 6px 7px;
+      border: 1px solid #d4dde5;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #eef3f7;
+      color: #162c42;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      margin-bottom: 18px;
+      color: #52616f;
+      font-size: 10.5pt;
+    }
+
+    .summary {
+      margin: 14px 0 18px;
+      padding: 12px 14px;
+      border-left: 4px solid #2f6f8f;
+      background: #f4f8fb;
+    }
+
+    .note {
+      margin: 10px 0 14px;
+      padding: 10px 12px;
+      border: 1px solid #d9e1e8;
+      background: #fbfcfd;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+  </style>
+</head>
+<body>
+  <h1>Door Reduction Clearance Algorithm</h1>
+  <p class="subtitle">Explanation of the original VB implementation in <code>Source/ClearanceCheck.bas</code> and the converted Node implementation in <code>src/clearanceCheck.js</code>.</p>
+
+  <div class="summary">
+    <p><strong>Main idea:</strong> the clearance algorithm checks whether the new storm/security door hardware can physically clear the customer's existing lock hardware and glass clearance. If the default configuration does not work, it tries a fixed sequence of accepted modifications and returns the first one that passes.</p>
+  </div>
+
+  <h2>Where The Algorithm Lives</h2>
+  <p>The original Access/VB code is in <code>Source/ClearanceCheck.bas</code>. The converted JavaScript version is in <code>src/clearanceCheck.js</code>. In the Node flow, the clearance input is assembled in <code>src/calcDoorOutput.js</code> by <code>buildClearanceInput()</code>, then passed into <code>chkClearance(input)</code>.</p>
+
+  <pre>chkClearance()
+  -> chkDBKLoc()
+    -> chkClear()
+      -> chkLoc()</pre>
+
+  <p>Each function has a specific responsibility. <code>chkClearance()</code> validates and prepares the input. <code>chkDBKLoc()</code> chooses the correct lock measurements. <code>chkClear()</code> tries possible solutions in priority order. <code>chkLoc()</code> performs the actual interference test.</p>
+
+  <h2>What Clearance Means Here</h2>
+  <p>The word "clearance" has two meanings in this project:</p>
+  <ol>
+    <li><strong>Glass/build-out clearance:</strong> the door needs enough spacing for normal glass. If the existing clearance is too small, the algorithm tries lath or tube frame build-outs.</li>
+    <li><strong>Hardware interference clearance:</strong> the new door's deadbolt, knob, or lever must not collide with the customer's existing deadbolt or knob.</li>
+  </ol>
+
+  <h2>Input Values</h2>
+  <p>The Node version expects this shape:</p>
+  <pre>{
+  doorHeight,
+  lockType,
+  chkLockOK,
+  ex: {
+    DBLoc,
+    DBLocB,
+    DBProj,
+    KLoc,
+    KLocB,
+    KProj
+  }
+}</pre>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Field</th>
+        <th>Meaning</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><code>doorHeight</code></td><td>Calculated total door height.</td></tr>
+      <tr><td><code>lockType</code></td><td>Internal numeric code for the selected lock family.</td></tr>
+      <tr><td><code>chkLockOK</code></td><td>If true, clearance checking is skipped and the result says no adjustment is needed.</td></tr>
+      <tr><td><code>DBLoc</code></td><td>Existing deadbolt location measured from the top.</td></tr>
+      <tr><td><code>DBLocB</code></td><td>Existing deadbolt location measured from the bottom.</td></tr>
+      <tr><td><code>DBProj</code></td><td>Existing deadbolt clearance/projection value used for comparison.</td></tr>
+      <tr><td><code>KLoc</code></td><td>Existing knob location measured from the top.</td></tr>
+      <tr><td><code>KLocB</code></td><td>Existing knob location measured from the bottom.</td></tr>
+      <tr><td><code>KProj</code></td><td>Existing knob clearance/projection value used for comparison.</td></tr>
+    </tbody>
+  </table>
+
+  <p>If both top and bottom locations for the existing knob are zero, the code assumes there is no existing knob conflict and defaults <code>KProj</code> to <code>3"</code>. It does the same for the deadbolt and <code>DBProj</code>.</p>
+
+  <h2>Lock Type Codes</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Code</th>
+        <th>Lock Family</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><code>60</code></td><td>4-Way Mortise</td></tr>
+      <tr><td><code>61</code></td><td>Yale / Kwikset</td></tr>
+      <tr><td><code>69</code></td><td>Slim Line</td></tr>
+      <tr><td><code>83</code></td><td>Bee Line</td></tr>
+      <tr><td><code>126</code></td><td>Deluxe, handled like Slim Line / Bee Line</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Step 1: Door Height Adjustment</h2>
+  <p>The original clearance constants are based on a standard <code>79"</code> door height:</p>
+  <pre>const DOOR_HEIGHT = 79;</pre>
+
+  <p>The algorithm calculates:</p>
+  <pre>iLocAdjust = actualDoorHeight - 79</pre>
+
+  <p>Then every lock location range is shifted by that amount. For example, a 4-Way Mortise deadbolt normally occupies <code>36.875"</code> to <code>38.875"</code>. If the actual door height is <code>80"</code>, the adjusted range becomes <code>37.875"</code> to <code>39.875"</code>.</p>
+
+  <h2>Step 2: Glass Clearance</h2>
+  <p>The glass clearance rule starts with this constant:</p>
+  <pre>const NORMAL_GLASS = 0.25;</pre>
+
+  <p>The algorithm takes the smaller of the deadbolt and knob clearance values:</p>
+  <pre>lowestClearance = Math.min(DBProj, KProj)
+iGlassAdj = 0.25 - lowestClearance</pre>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Condition</th>
+        <th>Meaning</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><code>iGlassAdj &lt;= 0</code></td><td>Normal glass clearance is already acceptable.</td></tr>
+      <tr><td><code>iGlassAdj &lt;= 0.25</code></td><td>A <code>1/4"</code> lath may solve the glass clearance issue.</td></tr>
+      <tr><td><code>iGlassAdj &lt;= 0.375</code></td><td>A <code>3/8"</code> lath may solve the issue.</td></tr>
+      <tr><td><code>iGlassAdj &lt;= 1</code></td><td>A <code>1"</code> tube frame may solve the issue.</td></tr>
+      <tr><td><code>iGlassAdj &gt; 1</code></td><td>The check fails because even a tube frame cannot create enough glass clearance.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Step 3: Lock-Specific Ranges And Projections</h2>
+  <p>Every lock family has hard-coded ranges for where its deadbolt, knob, reverse deadbolt, reverse knob, lever, and reverse lever will land. It also has projection values for how far the new hardware sticks out.</p>
+
+  <p>Example for 4-Way Mortise:</p>
+  <pre>MDL = 36.875  // deadbolt lower bound
+MDU = 38.875  // deadbolt upper bound
+MKL = 40.375  // knob lower bound
+MKU = 42.75   // knob upper bound
+
+MDP = 0.625   // deadbolt projection
+MKP = 2.5     // knob projection
+MLP = 2       // lever projection</pre>
+
+  <p>After applying the height adjustment, these ranges become the vertical zones where the new door hardware may interfere with existing hardware.</p>
+
+  <div class="page-break"></div>
+
+  <h2>Step 4: The Collision Test</h2>
+  <p>The real pass/fail logic is in <code>chkLoc()</code>. It checks four possible collisions:</p>
+  <ol>
+    <li>Existing deadbolt against new deadbolt.</li>
+    <li>Existing deadbolt against new knob or lever.</li>
+    <li>Existing knob against new knob or lever.</li>
+    <li>Existing knob against new deadbolt.</li>
+  </ol>
+
+  <p>A configuration fails when both of these are true:</p>
+  <pre>existing hardware location overlaps the new hardware vertical range
+AND
+new hardware projection > existing clearance + build-out adjustment</pre>
+
+  <p>So the algorithm is asking: "Does the new hardware land at the same height as the existing hardware, and if so, does it stick out too far for the available clearance?"</p>
+
+  <h3>Example</h3>
+  <p>If the existing knob has <code>1.5"</code> clearance and the new lever projects <code>2"</code>:</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Configuration</th>
+        <th>Comparison</th>
+        <th>Result</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>No build-out</td><td><code>2 &gt; 1.5 + 0</code></td><td>Fail</td></tr>
+      <tr><td><code>1/4"</code> lath</td><td><code>2 &gt; 1.5 + 0.25</code></td><td>Fail</td></tr>
+      <tr><td><code>3/8"</code> lath</td><td><code>2 &gt; 1.5 + 0.375</code></td><td>Fail</td></tr>
+      <tr><td><code>1"</code> tube</td><td><code>2 &gt; 1.5 + 1</code></td><td>Pass</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Step 5: Recommendation Order</h2>
+  <p>The algorithm does not search every possible solution and rank them mathematically. It tries a fixed business-priority sequence and returns the first option that passes.</p>
+
+  <h3>4-Way Mortise And Yale</h3>
+  <ol>
+    <li>No adjustment</li>
+    <li>Reverse lock</li>
+    <li>Lever</li>
+    <li>Reverse lever</li>
+    <li><code>1/4"</code> lath</li>
+    <li><code>3/8"</code> lath</li>
+    <li><code>1/4"</code> lath and lever</li>
+    <li><code>3/8"</code> lath and lever</li>
+    <li>Reverse and <code>1/4"</code> lath</li>
+    <li>Reverse and <code>3/8"</code> lath</li>
+    <li>Reverse lever and <code>1/4"</code> lath</li>
+    <li>Reverse lever and <code>3/8"</code> lath</li>
+    <li>Tube frame</li>
+    <li>Tube frame and lever</li>
+    <li>Reverse tube frame</li>
+    <li>Reverse lever and tube frame</li>
+    <li>Fail</li>
+  </ol>
+
+  <h3>Slim Line, Bee Line, And Deluxe</h3>
+  <ol>
+    <li>No adjustment</li>
+    <li><code>1/4"</code> lath</li>
+    <li><code>3/8"</code> lath</li>
+    <li>Tube frame</li>
+    <li>Fail</li>
+  </ol>
+
+  <h2>Special Yale Upgrade Rule</h2>
+  <p>There is one special fallback. If lock type <code>61</code> Yale/Kwikset fails completely, the algorithm tries the same measurements again as lock type <code>60</code>, which is 4-Way Mortise.</p>
+
+  <pre>if Yale fails:
+  try 4-Way Mortise
+  if 4-Way passes:
+    return the passing recommendation
+    append "Upgrade to 4-Way Mortise Lock is required"</pre>
+
+  <p>This means a Yale failure can still produce a valid recommendation if upgrading to 4-Way Mortise changes the hardware ranges/projections enough to clear.</p>
+
+  <h2>Output Messages</h2>
+  <p>The numeric result code is converted to a readable message. Examples include:</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Result</th>
+        <th>Message</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><code>NO_ADJUSTMENT</code></td><td>No Adjustment Required</td></tr>
+      <tr><td><code>REVERSE_LOCK</code></td><td>Reverse Lock Set Required</td></tr>
+      <tr><td><code>LEVER_REQUIRED</code></td><td>Lever Required</td></tr>
+      <tr><td><code>LATH14_REQUIRED</code></td><td>1/4-in Lath Required</td></tr>
+      <tr><td><code>LATH38_REQUIRED</code></td><td>3/8-in Lath Required</td></tr>
+      <tr><td><code>TUBE_REQUIRED</code></td><td>Tube Frame Required</td></tr>
+      <tr><td><code>CHECK_FAILED</code></td><td>Clearance Checked Failed - not able to adjust door</td></tr>
+      <tr><td><code>GLASS_FAILED</code></td><td>Clearance Checked Failed - not able to adjust glass</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Important Implementation Note</h2>
+  <div class="note">
+    <p>The original VB has an explicit <code>BAD_LOCK</code> result for unknown lock types. The current JavaScript mapping converts unknown lock names to <code>0</code>, but <code>chkClear()</code> does not currently return <code>BAD_LOCK</code> for that value. In practice, an unknown lock usually falls through and returns a general clearance failure instead of "Lock Type not recognized".</p>
+  </div>
+
+  <h2>Short Summary</h2>
+  <p>The clearance algorithm is a deterministic recommendation engine. It shifts lock ranges based on door height, calculates whether glass needs a build-out, tests whether new lock hardware overlaps existing hardware, and returns the first passing adjustment from a fixed sequence. The most important function is <code>chkLoc()</code>, because that is where physical interference is actually detected.</p>
+</body>
+</html>
