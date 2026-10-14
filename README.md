@@ -60,6 +60,14 @@ npm test
 
 The regression suite currently focuses on standard glass sizing for single, French, and patio configurations, including paired operator-door boundary cases.
 
+PDF regression tests also exercise both widgets with single-sided, paired, and
+overflowing reports. They verify three complete sets in order: Production Copy,
+File Copy, and Quality Control Copy. Only the heading differs; side numbering,
+continuation pages, manufacturing content, and QA fields are preserved.
+Set `PDF_REVIEW_OUTPUT` to a local directory when running `npm test` to save the
+synthetic PDF fixtures for visual review. Tests use the same pinned `pdf-lib`
+version as the widgets and do not contact CRM.
+
 ## Calculation flow
 
 1. A data provider loads the door, product, component, option, and reference data.

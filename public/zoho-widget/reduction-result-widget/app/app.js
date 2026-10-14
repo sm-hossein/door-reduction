@@ -247,7 +247,7 @@
       return lines.length ? lines : [""];
     };
 
-    const titleText = "Production Copy";
+    const titleText = pageMeta.copyTitle || "Production Copy";
     const titleY = PH - M - 12;
     const titleBarY = titleY - 8;
     page.drawRectangle({
@@ -644,14 +644,18 @@
     const { PDFDocument } = window.PDFLib;
     const mergedPdf = await PDFDocument.create();
 
-    for (let i = 0; i < list.length; i += 1) {
-      const sourceBytes = await buildPdfBytesForDoor(list[i], {
-        pageNumber: i + 1,
-        totalPages: list.length
-      });
-      const sourceDoc = await PDFDocument.load(sourceBytes);
-      const sourcePages = await mergedPdf.copyPages(sourceDoc, sourceDoc.getPageIndices());
-      sourcePages.forEach(p => mergedPdf.addPage(p));
+    const copyTitles = ["Production Copy", "File Copy", "Quality Control Copy"];
+    for (const copyTitle of copyTitles) {
+      for (let i = 0; i < list.length; i += 1) {
+        const sourceBytes = await buildPdfBytesForDoor(list[i], {
+          copyTitle,
+          pageNumber: i + 1,
+          totalPages: list.length
+        });
+        const sourceDoc = await PDFDocument.load(sourceBytes);
+        const sourcePages = await mergedPdf.copyPages(sourceDoc, sourceDoc.getPageIndices());
+        sourcePages.forEach(p => mergedPdf.addPage(p));
+      }
     }
 
     return mergedPdf.save();

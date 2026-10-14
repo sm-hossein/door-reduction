@@ -12,5 +12,8 @@
     "cors": "^2.8.5",
     "esm": "^3.2.25",
     "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "pdf-lib": "1.17.1"
   }
 }
