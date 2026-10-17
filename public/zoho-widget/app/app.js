@@ -1,6 +1,154 @@
 (() => {
-  const { useEffect, useState, useRef } = React;
+  const { useEffect, useId, useMemo, useState, useRef } = React;
   const e = React.createElement;
+  const {
+    filterOptions,
+    moveFocusOnEnter,
+    withCurrentOption
+  } = window.DoorReductionFormInteractions;
+
+  function SearchableSelect({
+    ariaLabel,
+    disabled = false,
+    onChange,
+    options,
+    placeholder = "Select",
+    value
+  }) {
+    const rootRef = useRef(null);
+    const inputRef = useRef(null);
+    const listId = useId();
+    const normalizedOptions = useMemo(
+      () => withCurrentOption(options, value),
+      [options, value]
+    );
+    const selected = normalizedOptions.find(option => option.value === String(value ?? ""));
+    const selectedLabel = selected?.label || String(value ?? "");
+    const [open, setOpen] = useState(false);
+    const [typed, setTyped] = useState(false);
+    const [inputText, setInputText] = useState(selectedLabel);
+    const [highlightedIndex, setHighlightedIndex] = useState(0);
+    const visibleOptions = filterOptions(normalizedOptions, typed ? inputText : "");
+
+    const close = () => {
+      setOpen(false);
+      setTyped(false);
+      setInputText(selectedLabel);
+      setHighlightedIndex(0);
+    };
+
+    const choose = option => {
+      if (!option) return;
+      onChange(option.value);
+      setOpen(false);
+      setTyped(false);
+      setInputText(option.label);
+      setHighlightedIndex(0);
+    };
+
+    useEffect(() => {
+      if (!open) setInputText(selectedLabel);
+    }, [open, selectedLabel]);
+
+    useEffect(() => {
+      const handleOutsidePointer = event => {
+        if (!rootRef.current?.contains(event.target)) close();
+      };
+      document.addEventListener("mousedown", handleOutsidePointer);
+      return () => document.removeEventListener("mousedown", handleOutsidePointer);
+    }, [selectedLabel]);
+
+    const handleKeyDown = event => {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!open) {
+          setOpen(true);
+          setTyped(false);
+          setHighlightedIndex(0);
+          return;
+        }
+        const direction = event.key === "ArrowDown" ? 1 : -1;
+        setHighlightedIndex(index => {
+          if (!visibleOptions.length) return 0;
+          return (index + direction + visibleOptions.length) % visibleOptions.length;
+        });
+        return;
+      }
+      if (event.key === "Enter" && open) {
+        event.preventDefault();
+        event.stopPropagation();
+        choose(visibleOptions[highlightedIndex] || visibleOptions[0]);
+        return;
+      }
+      if (event.key === "Escape" && open) {
+        event.preventDefault();
+        event.stopPropagation();
+        close();
+        return;
+      }
+      if (event.key === "Tab" && open) close();
+    };
+
+    return e(
+      "div",
+      { className: `searchable-select${open ? " open" : ""}${disabled ? " disabled" : ""}`, ref: rootRef },
+      e("input", {
+        "aria-autocomplete": "list",
+        "aria-controls": listId,
+        "aria-expanded": open ? "true" : "false",
+        "aria-label": ariaLabel,
+        autoComplete: "off",
+        disabled,
+        onChange: event => {
+          setInputText(event.target.value);
+          setTyped(true);
+          setOpen(true);
+          setHighlightedIndex(0);
+        },
+        onClick: () => {
+          if (!disabled) setOpen(true);
+        },
+        onFocus: event => {
+          if (!disabled) {
+            setOpen(true);
+            setTyped(false);
+            event.target.select();
+          }
+        },
+        onKeyDown: handleKeyDown,
+        placeholder,
+        ref: inputRef,
+        role: "combobox",
+        value: inputText
+      }),
+      e("span", { className: "searchable-select-caret", "aria-hidden": "true" }, open ? "^" : "v"),
+      open
+        ? e(
+            "div",
+            { className: "searchable-select-menu", id: listId, role: "listbox" },
+            visibleOptions.length
+              ? visibleOptions.map((option, index) =>
+                  e(
+                    "button",
+                    {
+                      "aria-selected": option.value === String(value ?? "") ? "true" : "false",
+                      className: `searchable-select-option${index === highlightedIndex ? " highlighted" : ""}${option.value === String(value ?? "") ? " selected" : ""}`,
+                      key: `${option.value}-${index}`,
+                      onMouseDown: event => event.preventDefault(),
+                      onMouseEnter: () => setHighlightedIndex(index),
+                      onClick: () => choose(option),
+                      role: "option",
+                      type: "button"
+                    },
+                    option.label || placeholder
+                  )
+                )
+              : e("div", { className: "searchable-select-empty" }, "No matching options")
+          )
+        : null
+    );
+  }
 
   const CONFIG = {
     orderItemsModule: "Order_Items",
@@ -1000,6 +1148,8 @@
     const [pdfFormSnapshot, setPdfFormSnapshot] = useState(DEFAULT_FORM);
     const [pdfError, setPdfError] = useState("");
     const [doorGateOptionsOpen, setDoorGateOptionsOpen] = useState(false);
+    const [doorGateOptionsQuery, setDoorGateOptionsQuery] = useState("");
+    const [doorGateHighlightedIndex, setDoorGateHighlightedIndex] = useState(0);
     const [picklistChoices, setPicklistChoices] = useState({
       lock: [],
       color: [],
@@ -1008,7 +1158,9 @@
       doorGateOption: []
     });
     const pdfUrlRef = useRef("");
+    const contentRef = useRef(null);
     const doorGateOptionsRef = useRef(null);
+    const doorGateSearchRef = useRef(null);
 
     const hasZoho = window.ZOHO && ZOHO.CRM;
     const isOperatorMode = isOperatorModeForDoorType(form.doorType);
@@ -1082,6 +1234,8 @@
         if (!root) return;
         if (!root.contains(ev.target)) {
           setDoorGateOptionsOpen(false);
+          setDoorGateOptionsQuery("");
+          setDoorGateHighlightedIndex(0);
         }
       };
       document.addEventListener("mousedown", handleDocMouseDown);
@@ -1089,6 +1243,10 @@
         document.removeEventListener("mousedown", handleDocMouseDown);
       };
     }, []);
+
+    useEffect(() => {
+      if (doorGateOptionsOpen) doorGateSearchRef.current?.focus();
+    }, [doorGateOptionsOpen]);
 
     useEffect(() => {
       let mounted = true;
@@ -1524,7 +1682,47 @@
       ...picklistChoices.doorGateOption,
       ...form.doorGateOption
     ]);
+    const filteredDoorGateOptionChoices = filterOptions(
+      doorGateOptionChoices,
+      doorGateOptionsQuery
+    ).map(option => option.value);
     const selectedDoorGateCount = form.doorGateOption.length;
+
+    const searchableOptions = (values, includeEmpty = true) => [
+      ...(includeEmpty ? [{ value: "", label: "Select" }] : []),
+      ...values.map(value => ({ value: String(value), label: String(value) }))
+    ];
+
+    const closeDoorGateOptions = () => {
+      setDoorGateOptionsOpen(false);
+      setDoorGateOptionsQuery("");
+      setDoorGateHighlightedIndex(0);
+    };
+
+    const handleDoorGateSearchKeyDown = event => {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        event.stopPropagation();
+        const direction = event.key === "ArrowDown" ? 1 : -1;
+        setDoorGateHighlightedIndex(index => {
+          if (!filteredDoorGateOptionChoices.length) return 0;
+          return (index + direction + filteredDoorGateOptionChoices.length) % filteredDoorGateOptionChoices.length;
+        });
+        return;
+      }
+      if (event.key === "Enter") {
+        event.preventDefault();
+        event.stopPropagation();
+        const option = filteredDoorGateOptionChoices[doorGateHighlightedIndex] || filteredDoorGateOptionChoices[0];
+        if (option) toggleDoorGateOption(option);
+        return;
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        closeDoorGateOptions();
+      }
+    };
 
     const toggleDoorGateOption = value => {
       const nextValue = String(value || "").trim();
@@ -1576,7 +1774,11 @@
       ),
       e(
         "main",
-        { className: "content panel" },
+        {
+          className: "content panel",
+          onKeyDown: event => moveFocusOnEnter(event, contentRef.current),
+          ref: contentRef
+        },
         e(
           "div",
           { className: "row top-row" },
@@ -1661,28 +1863,23 @@
                   "div",
                   { className: "field" },
                   e("label", null, "Secondary Product ID:"),
-                  e(
-                    "select",
-                    {
-                      value: form.secondaryProductId || "",
-                      disabled: !!secondaryProductRule.locked,
-                      onChange: ev => {
-                        const selectedId = ev.target.value;
-                        const selected = secondaryCandidates.find(c => c.id === selectedId);
-                        setForm(prev => ({
-                          ...prev,
-                          secondaryProductId: selectedId,
-                          secondaryProductName: selected ? (selected.name || selectedId) : selectedId
-                        }));
-                      }
+                  e(SearchableSelect, {
+                    ariaLabel: "Secondary Product ID",
+                    disabled: !!secondaryProductRule.locked,
+                    onChange: selectedId => {
+                      const selected = secondaryCandidates.find(c => c.id === selectedId);
+                      setForm(prev => ({
+                        ...prev,
+                        secondaryProductId: selectedId,
+                        secondaryProductName: selected ? (selected.name || selectedId) : selectedId
+                      }));
                     },
-                    secondaryProductRule.allowEmpty
-                      ? e("option", { value: "" }, "Select")
-                      : null,
-                    ...secondaryCandidates.map(c =>
-                      e("option", { key: c.id, value: c.id }, c.id)
-                    )
-                  )
+                    options: [
+                      ...(secondaryProductRule.allowEmpty ? [{ value: "", label: "Select" }] : []),
+                      ...secondaryCandidates.map(c => ({ value: c.id, label: c.id }))
+                    ],
+                    value: form.secondaryProductId || ""
+                  })
                 )
               : null,
             requiresSecondaryProduct
@@ -1708,17 +1905,16 @@
                       value: form.legLength || "",
                       onChange: ev => setField("legLength", ev.target.value)
                     }),
-                    e(
-                      "select",
-                      {
-                        value: form.legLengthFraction || "",
-                        onChange: ev => setField("legLengthFraction", ev.target.value)
-                      },
-                      e("option", { value: "" }, ""),
-                      ...LEG_LENGTH_FRACTION_OPTIONS.map(opt =>
-                        e("option", { key: opt.value, value: opt.value }, opt.label)
-                      )
-                    )
+                    e(SearchableSelect, {
+                      ariaLabel: "Leg Length Fraction",
+                      onChange: value => setField("legLengthFraction", value),
+                      options: [
+                        { value: "", label: "None" },
+                        ...LEG_LENGTH_FRACTION_OPTIONS
+                      ],
+                      placeholder: "None",
+                      value: form.legLengthFraction || ""
+                    })
                   )
                 )
               : null,
@@ -1745,17 +1941,12 @@
             "div",
             { className: "field" },
             e("label", null, "Lock:"),
-            e(
-              "select",
-              {
-                value: form.lock || "",
-                onChange: ev => setField("lock", ev.target.value)
-              },
-              e("option", { value: "" }, "Select"),
-              ...lockChoices.map(value =>
-                e("option", { key: value, value }, value)
-              )
-            )
+            e(SearchableSelect, {
+              ariaLabel: "Lock",
+              onChange: value => setField("lock", value),
+              options: searchableOptions(lockChoices),
+              value: form.lock || ""
+            })
           ),
           ),
           e(
@@ -1821,33 +2012,24 @@
               "div",
               { className: "field" },
               e("label", null, "Color:"),
-              e(
-                "select",
-                {
-                  value: form.color || "",
-                  onChange: ev => setField("color", ev.target.value)
-                },
-                e("option", { value: "" }, "Select"),
-                ...colorChoices.map(value =>
-                  e("option", { key: value, value }, value)
-                )
-              )
+              e(SearchableSelect, {
+                ariaLabel: "Color",
+                onChange: value => setField("color", value),
+                options: searchableOptions(colorChoices),
+                value: form.color || ""
+              })
             ),
             (!isOperatorMode || hasSeparateHingeAndOperator)
               ? e(
                   "div",
                   { className: "field" },
                   e("label", null, "Hinge:"),
-                  e(
-                    "select",
-                    {
-                      value: form.hinge || "",
-                      onChange: ev => setField("hinge", ev.target.value)
-                    },
-                    e("option", { value: "" }, "Select"),
-                    e("option", { value: "Left" }, "Left"),
-                    e("option", { value: "Right" }, "Right")
-                  )
+                  e(SearchableSelect, {
+                    ariaLabel: "Hinge",
+                    onChange: value => setField("hinge", value),
+                    options: searchableOptions(["Left", "Right"]),
+                    value: form.hinge || ""
+                  })
                 )
               : null,
             hasSeparateHingeAndOperator
@@ -1855,16 +2037,12 @@
                   "div",
                   { className: "field" },
                   e("label", null, "Operator:"),
-                  e(
-                    "select",
-                    {
-                      value: form.operator || "",
-                      onChange: ev => setField("operator", ev.target.value)
-                    },
-                    e("option", { value: "" }, "Select"),
-                    e("option", { value: "Left" }, "Left"),
-                    e("option", { value: "Right" }, "Right")
-                  )
+                  e(SearchableSelect, {
+                    ariaLabel: "Operator",
+                    onChange: value => setField("operator", value),
+                    options: searchableOptions(["Left", "Right"]),
+                    value: form.operator || ""
+                  })
                 )
               : null,
             !hasSeparateHingeAndOperator && isOperatorMode
@@ -1872,49 +2050,35 @@
                   "div",
                   { className: "field" },
                   e("label", null, "Operator:"),
-                  e(
-                    "select",
-                    {
-                      value: form.hinge || "",
-                      onChange: ev => setField("hinge", ev.target.value)
-                    },
-                    e("option", { value: "" }, "Select"),
-                    e("option", { value: "Left" }, "Left"),
-                    e("option", { value: "Right" }, "Right")
-                  )
+                  e(SearchableSelect, {
+                    ariaLabel: "Operator",
+                    onChange: value => setField("hinge", value),
+                    options: searchableOptions(["Left", "Right"]),
+                    value: form.hinge || ""
+                  })
                 )
               : null,
             e(
               "div",
               { className: "field" },
               e("label", null, "Lock Color:"),
-              e(
-                "select",
-                {
-                  value: form.lockColor || "",
-                  onChange: ev => setField("lockColor", ev.target.value)
-                },
-                e("option", { value: "" }, "Select"),
-                ...lockColorChoices.map(value =>
-                  e("option", { key: value, value }, value)
-                )
-              )
+              e(SearchableSelect, {
+                ariaLabel: "Lock Color",
+                onChange: value => setField("lockColor", value),
+                options: searchableOptions(lockColorChoices),
+                value: form.lockColor || ""
+              })
             ),
             e(
               "div",
               { className: "field" },
               e("label", null, "Handle Type:"),
-              e(
-                "select",
-                {
-                  value: form.handleType || "",
-                  onChange: ev => setField("handleType", ev.target.value)
-                },
-                e("option", { value: "" }, "Select"),
-                ...handleTypeChoices.map(value =>
-                  e("option", { key: value, value }, value)
-                )
-              )
+              e(SearchableSelect, {
+                ariaLabel: "Handle Type",
+                onChange: value => setField("handleType", value),
+                options: searchableOptions(handleTypeChoices),
+                value: form.handleType || ""
+              })
             )
           ),
           e(
@@ -1932,7 +2096,11 @@
                 {
                   type: "button",
                   className: `multi-picklist-control${doorGateOptionsOpen ? " open" : ""}`,
-                  onClick: () => setDoorGateOptionsOpen(prev => !prev)
+                  "aria-expanded": doorGateOptionsOpen ? "true" : "false",
+                  onClick: () => {
+                    if (doorGateOptionsOpen) closeDoorGateOptions();
+                    else setDoorGateOptionsOpen(true);
+                  }
                 },
                 e(
                   "div",
@@ -1979,21 +2147,35 @@
                 ? e(
                     "div",
                     { className: "multi-picklist-menu" },
-                    doorGateOptionChoices.length
-                      ? doorGateOptionChoices.map(value => {
+                    e("input", {
+                      "aria-label": "Search Options",
+                      autoComplete: "off",
+                      className: "multi-picklist-search",
+                      onChange: event => {
+                        setDoorGateOptionsQuery(event.target.value);
+                        setDoorGateHighlightedIndex(0);
+                      },
+                      onKeyDown: handleDoorGateSearchKeyDown,
+                      placeholder: "Type to search options",
+                      ref: doorGateSearchRef,
+                      value: doorGateOptionsQuery
+                    }),
+                    filteredDoorGateOptionChoices.length
+                      ? filteredDoorGateOptionChoices.map((value, index) => {
                           const selected = form.doorGateOption.includes(value);
                           return e(
                             "button",
                             {
                               type: "button",
                               key: value,
-                              className: `multi-picklist-option${selected ? " selected" : ""}`,
+                              className: `multi-picklist-option${selected ? " selected" : ""}${index === doorGateHighlightedIndex ? " highlighted" : ""}`,
+                              onMouseEnter: () => setDoorGateHighlightedIndex(index),
                               onClick: () => toggleDoorGateOption(value)
                             },
                             selected ? `[x] ${value}` : value
                           );
                         })
-                      : e("div", { className: "multi-picklist-empty" }, "No options available")
+                      : e("div", { className: "multi-picklist-empty" }, "No matching options")
                   )
                 : null
             ),
@@ -2033,6 +2215,7 @@
           {
             className: "btn primary",
             type: "button",
+            "data-enter-destination": "true",
             onClick: handleReduce,
             disabled: loadingState === "loading"
           },

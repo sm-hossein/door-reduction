@@ -68,6 +68,20 @@ Set `PDF_REVIEW_OUTPUT` to a local directory when running `npm test` to save the
 synthetic PDF fixtures for visual review. Tests use the same pinned `pdf-lib`
 version as the widgets and do not contact CRM.
 
+## Input-widget keyboard behavior
+
+The Door Reduction input widget uses searchable comboboxes for its single-value
+picklists and provides search inside the Options multi-picklist. Arrow keys move
+through results, Enter selects, and Escape closes an open list. Search filters
+existing CRM choices only; it never creates a new picklist value. Existing CRM
+values remain visible when current field metadata does not contain them.
+
+Outside an open picklist, Enter advances through visible editable single-line
+controls and Shift+Enter moves backward. Read-only, disabled, and hidden fields
+are skipped, textareas keep normal multiline Enter behavior, and the last field
+advances to Reduce without activating it. CRM-derived read-only values use a
+distinct high-contrast appearance and remain selectable for copying.
+
 ## Calculation flow
 
 1. A data provider loads the door, product, component, option, and reference data.

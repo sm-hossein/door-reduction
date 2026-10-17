@@ -14,7 +14,14 @@ function loadRenderer(path, endMarker) {
   const source = readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
   const load = new Function('window', 'React', 'return ' +
     source.slice(0, source.indexOf(endMarker)) + 'return buildPdfBytesForDoors; })();');
-  return load({ PDFLib }, {});
+  return load({
+    PDFLib,
+    DoorReductionFormInteractions: {
+      filterOptions() { return []; },
+      moveFocusOnEnter() { return false; },
+      withCurrentOption(options) { return options; },
+    },
+  }, {});
 }
 
 function pageContent(doc, page) {
