@@ -49,6 +49,23 @@ test('withCurrentOption retains a CRM value missing from current metadata', () =
   ]);
 });
 
+test('Enter does not select an option until one is explicitly highlighted', () => {
+  const options = ['Select', 'Bronze', 'White'];
+  assert.equal(interactions.getHighlightedOption(options, -1), null);
+  assert.equal(interactions.getHighlightedOption(options, 0), 'Select');
+  assert.equal(interactions.getHighlightedOption(options, 1), 'Bronze');
+});
+
+test('typing searches real values without offering the Select placeholder', () => {
+  const results = interactions.getSearchResults([
+    { value: '', label: 'Select' },
+    { value: 'Satin Nickel', label: 'Satin Nickel' },
+  ], 's', true);
+  assert.deepEqual(JSON.parse(JSON.stringify(results)), [
+    { value: 'Satin Nickel', label: 'Satin Nickel' },
+  ]);
+});
+
 test('Enter advances and Shift+Enter reverses while skipping unavailable controls', () => {
   const first = control('first');
   const readOnly = control('read-only', { readOnly: true });

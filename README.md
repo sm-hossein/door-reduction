@@ -80,7 +80,11 @@ Outside an open picklist, Enter advances through visible editable single-line
 controls and Shift+Enter moves backward. Read-only, disabled, and hidden fields
 are skipped, textareas keep normal multiline Enter behavior, and the last field
 advances to Reduce without activating it. CRM-derived read-only values use a
-distinct high-contrast appearance and remain selectable for copying.
+distinct grey high-contrast appearance, remain selectable for copying, and are
+removed from the keyboard tab sequence. Focusing a prefilled picklist does not
+open or change it; users type, click, or use an arrow key to open choices. An
+empty Options search has no highlighted result, so Enter cannot accidentally
+select the first option.
 
 ## Calculation flow
 

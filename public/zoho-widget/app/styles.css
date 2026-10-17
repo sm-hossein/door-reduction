@@ -142,9 +142,9 @@ body {
 }
 
 .field input[readonly] {
-  background: #e7e8ee;
-  border-color: #8a8da0;
-  color: #25283a;
+  background: #d4d6dd;
+  border-color: #777b8d;
+  color: #202334;
   font-weight: 600;
   cursor: text;
 }
