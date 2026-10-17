@@ -66,6 +66,13 @@ test('typing searches real values without offering the Select placeholder', () =
   ]);
 });
 
+test('a non-empty search with no results is invalid and must retain focus', () => {
+  assert.equal(interactions.hasInvalidSearch('wrong value', true, []), true);
+  assert.equal(interactions.hasInvalidSearch('', true, []), false);
+  assert.equal(interactions.hasInvalidSearch('bronze', true, ['Bronze']), false);
+  assert.equal(interactions.hasInvalidSearch('wrong value', false, []), false);
+});
+
 test('Enter advances and Shift+Enter reverses while skipping unavailable controls', () => {
   const first = control('first');
   const readOnly = control('read-only', { readOnly: true });

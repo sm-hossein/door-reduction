@@ -6,6 +6,7 @@
     focusAdjacentControl,
     getHighlightedOption,
     getSearchResults,
+    hasInvalidSearch,
     moveFocusOnEnter,
     withCurrentOption
   } = window.DoorReductionFormInteractions;
@@ -32,6 +33,7 @@
     const [inputText, setInputText] = useState(selectedLabel);
     const [highlightedIndex, setHighlightedIndex] = useState(-1);
     const visibleOptions = getSearchResults(normalizedOptions, inputText, typed);
+    const invalidSearch = hasInvalidSearch(inputText, typed, visibleOptions);
 
     const close = () => {
       setOpen(false);
@@ -82,6 +84,7 @@
       if (event.key === "Enter" && open) {
         event.preventDefault();
         event.stopPropagation();
+        if (invalidSearch) return;
         const highlightedOption = getHighlightedOption(visibleOptions, highlightedIndex);
         if (highlightedOption) {
           choose(highlightedOption);
@@ -102,11 +105,13 @@
 
     return e(
       "div",
-      { className: `searchable-select${open ? " open" : ""}${disabled ? " disabled" : ""}`, ref: rootRef },
+      { className: `searchable-select${open ? " open" : ""}${disabled ? " disabled" : ""}${invalidSearch ? " invalid" : ""}`, ref: rootRef },
       e("input", {
         "aria-autocomplete": "list",
         "aria-controls": listId,
+        "aria-describedby": invalidSearch ? `${listId}-error` : undefined,
         "aria-expanded": open ? "true" : "false",
+        "aria-invalid": invalidSearch ? "true" : "false",
         "aria-label": ariaLabel,
         autoComplete: "off",
         disabled,
@@ -157,7 +162,15 @@
                     option.label || placeholder
                   )
                 )
-              : e("div", { className: "searchable-select-empty" }, "No matching options")
+              : e(
+                  "div",
+                  {
+                    className: "searchable-select-empty",
+                    id: `${listId}-error`,
+                    role: "alert"
+                  },
+                  "No matching option. Choose an existing value or press Esc to cancel."
+                )
           )
         : null
     );

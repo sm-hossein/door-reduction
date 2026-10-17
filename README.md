@@ -84,7 +84,9 @@ distinct grey high-contrast appearance, remain selectable for copying, and are
 removed from the keyboard tab sequence. Focusing a prefilled picklist does not
 open or change it; users type, click, or use an arrow key to open choices. An
 empty Options search has no highlighted result, so Enter cannot accidentally
-select the first option.
+select the first option. If a typed single-picklist search has no matches, Enter
+keeps focus in that field and displays an inline error; Escape cancels the search
+and restores the previously selected value.
 
 ## Calculation flow
 

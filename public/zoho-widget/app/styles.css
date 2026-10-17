@@ -144,7 +144,7 @@ body {
 .field input[readonly] {
   background: #d4d6dd;
   border-color: #777b8d;
-  color: #202334;
+  color: #5a5e6b;
   font-weight: 600;
   cursor: text;
 }
@@ -211,6 +211,11 @@ body {
   box-shadow: 0 0 0 2px rgba(58, 97, 216, 0.16);
 }
 
+.searchable-select.invalid input {
+  border-color: #b42318;
+  box-shadow: 0 0 0 2px rgba(180, 35, 24, 0.2);
+}
+
 .searchable-select-caret {
   position: absolute;
   right: 9px;
@@ -256,8 +261,10 @@ body {
 
 .searchable-select-empty {
   padding: 10px 12px;
-  color: #6b7086;
+  color: #9b1c13;
+  background: #fff1f0;
   font-size: 13px;
+  font-weight: 600;
 }
 
 .dim-note {

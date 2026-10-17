@@ -41,6 +41,9 @@
   const getSearchResults = (options, query, typed = false) =>
     filterOptions(options, typed ? query : "").filter(option => !typed || option.value !== "");
 
+  const hasInvalidSearch = (query, typed, results) =>
+    !!typed && !!String(query ?? "").trim() && (!Array.isArray(results) || results.length === 0);
+
   const isVisible = element => {
     if (!element || element.hidden) return false;
     if (element.getClientRects && element.getClientRects().length === 0) return false;
@@ -95,6 +98,7 @@
     focusAdjacentControl,
     getHighlightedOption,
     getSearchResults,
+    hasInvalidSearch,
     getEnterNavigationControls,
     moveFocusOnEnter,
     normalizeOptions,
