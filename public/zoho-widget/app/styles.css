@@ -130,6 +130,35 @@ body {
   min-width: 0;
 }
 
+.field input:focus-visible,
+.field select:focus-visible,
+.field textarea:focus-visible,
+.searchable-select input:focus-visible,
+.multi-picklist-control:focus-visible,
+.multi-picklist-search:focus-visible,
+.btn:focus-visible {
+  outline: 3px solid #f7c948;
+  outline-offset: 2px;
+}
+
+.field input[readonly] {
+  background: #e7e8ee;
+  border-color: #8a8da0;
+  color: #25283a;
+  font-weight: 600;
+  cursor: text;
+}
+
+.field input:disabled,
+.field select:disabled,
+.searchable-select.disabled input {
+  background: #cfd1da;
+  border-color: #989ba9;
+  color: #666979;
+  cursor: not-allowed;
+  opacity: 0.78;
+}
+
 .field textarea {
   resize: vertical;
 }
@@ -161,6 +190,74 @@ body {
   min-width: 72px;
   width: 72px;
   padding-right: 22px;
+}
+
+.leg-length-row .searchable-select {
+  min-width: 110px;
+}
+
+.searchable-select {
+  position: relative;
+  min-width: 0;
+  width: 100%;
+}
+
+.searchable-select input {
+  padding-right: 28px;
+}
+
+.searchable-select.open input {
+  border-color: #3a61d8;
+  box-shadow: 0 0 0 2px rgba(58, 97, 216, 0.16);
+}
+
+.searchable-select-caret {
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  color: #5f5f7d;
+  font-size: 12px;
+  line-height: 1;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.searchable-select-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  max-height: 220px;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #b8bdd2;
+  box-shadow: 0 6px 20px rgba(16, 20, 35, 0.2);
+  z-index: 20;
+}
+
+.searchable-select-option {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 9px 12px;
+  color: #2a3045;
+  cursor: pointer;
+}
+
+.searchable-select-option.highlighted {
+  background: #f2f4fb;
+}
+
+.searchable-select-option.selected {
+  color: #173b8f;
+  font-weight: 700;
+}
+
+.searchable-select-empty {
+  padding: 10px 12px;
+  color: #6b7086;
+  font-size: 13px;
 }
 
 .dim-note {
@@ -287,6 +384,18 @@ body {
   z-index: 10;
 }
 
+.multi-picklist-search {
+  position: sticky;
+  top: 0;
+  width: calc(100% - 16px);
+  margin: 8px;
+  padding: 8px 10px;
+  background: #fff;
+  border: 1px solid #737993;
+  color: #202538;
+  z-index: 1;
+}
+
 .multi-picklist-meta {
   color: #5f6680;
   font-size: 12px;
@@ -305,6 +414,11 @@ body {
 
 .multi-picklist-option:hover {
   background: #f2f4fb;
+}
+
+.multi-picklist-option.highlighted {
+  background: #f2f4fb;
+  box-shadow: inset 3px 0 #3a61d8;
 }
 
 .multi-picklist-option.selected {
