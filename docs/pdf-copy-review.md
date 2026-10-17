@@ -2,7 +2,7 @@
 
 Task: https://trello.com/c/iM346f7S
 
-Each widget generates complete Production Copy, File Copy, and Quality Control
+Each widget generates complete Production Copy, Quality Control Copy, and File
 Copy sets, in that order. Only the heading changes. A set contains every door
 side and its continuation pages; existing side numbering restarts with each set.
 

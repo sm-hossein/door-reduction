@@ -644,7 +644,7 @@
     const { PDFDocument } = window.PDFLib;
     const mergedPdf = await PDFDocument.create();
 
-    const copyTitles = ["Production Copy", "File Copy", "Quality Control Copy"];
+    const copyTitles = ["Production Copy", "Quality Control Copy", "File Copy"];
     for (const copyTitle of copyTitles) {
       for (let i = 0; i < list.length; i += 1) {
         const sourceBytes = await buildPdfBytesForDoor(list[i], {
