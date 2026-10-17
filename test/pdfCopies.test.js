@@ -3,7 +3,7 @@ import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import test from 'node:test';
 import * as PDFLib from 'pdf-lib';
 
-const titles = ['Production Copy', 'File Copy', 'Quality Control Copy'];
+const titles = ['Production Copy', 'Quality Control Copy', 'File Copy'];
 const widgets = [
   ['input', 'public/zoho-widget/app/app.js', '  const toBase64 ='],
   ['result', 'public/zoho-widget/reduction-result-widget/app/app.js', '  const appTemplate ='],
