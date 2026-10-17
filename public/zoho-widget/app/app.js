@@ -3,6 +3,10 @@
   const e = React.createElement;
   const {
     filterOptions,
+    focusAdjacentControl,
+    getHighlightedOption,
+    getSearchResults,
+    hasInvalidSearch,
     moveFocusOnEnter,
     withCurrentOption
   } = window.DoorReductionFormInteractions;
@@ -27,14 +31,15 @@
     const [open, setOpen] = useState(false);
     const [typed, setTyped] = useState(false);
     const [inputText, setInputText] = useState(selectedLabel);
-    const [highlightedIndex, setHighlightedIndex] = useState(0);
-    const visibleOptions = filterOptions(normalizedOptions, typed ? inputText : "");
+    const [highlightedIndex, setHighlightedIndex] = useState(-1);
+    const visibleOptions = getSearchResults(normalizedOptions, inputText, typed);
+    const invalidSearch = hasInvalidSearch(inputText, typed, visibleOptions);
 
     const close = () => {
       setOpen(false);
       setTyped(false);
       setInputText(selectedLabel);
-      setHighlightedIndex(0);
+      setHighlightedIndex(-1);
     };
 
     const choose = option => {
@@ -43,7 +48,7 @@
       setOpen(false);
       setTyped(false);
       setInputText(option.label);
-      setHighlightedIndex(0);
+      setHighlightedIndex(-1);
     };
 
     useEffect(() => {
@@ -65,12 +70,13 @@
         if (!open) {
           setOpen(true);
           setTyped(false);
-          setHighlightedIndex(0);
+          setHighlightedIndex(-1);
           return;
         }
         const direction = event.key === "ArrowDown" ? 1 : -1;
         setHighlightedIndex(index => {
           if (!visibleOptions.length) return 0;
+          if (index < 0) return direction > 0 ? 0 : visibleOptions.length - 1;
           return (index + direction + visibleOptions.length) % visibleOptions.length;
         });
         return;
@@ -78,7 +84,14 @@
       if (event.key === "Enter" && open) {
         event.preventDefault();
         event.stopPropagation();
-        choose(visibleOptions[highlightedIndex] || visibleOptions[0]);
+        if (invalidSearch) return;
+        const highlightedOption = getHighlightedOption(visibleOptions, highlightedIndex);
+        if (highlightedOption) {
+          choose(highlightedOption);
+        } else {
+          close();
+          focusAdjacentControl(event.currentTarget, rootRef.current?.closest("main"), !!event.shiftKey);
+        }
         return;
       }
       if (event.key === "Escape" && open) {
@@ -92,27 +105,32 @@
 
     return e(
       "div",
-      { className: `searchable-select${open ? " open" : ""}${disabled ? " disabled" : ""}`, ref: rootRef },
+      { className: `searchable-select${open ? " open" : ""}${disabled ? " disabled" : ""}${invalidSearch ? " invalid" : ""}`, ref: rootRef },
       e("input", {
         "aria-autocomplete": "list",
         "aria-controls": listId,
+        "aria-describedby": invalidSearch ? `${listId}-error` : undefined,
         "aria-expanded": open ? "true" : "false",
+        "aria-invalid": invalidSearch ? "true" : "false",
         "aria-label": ariaLabel,
         autoComplete: "off",
         disabled,
         onChange: event => {
-          setInputText(event.target.value);
+          const nextText = event.target.value;
+          setInputText(nextText);
           setTyped(true);
           setOpen(true);
-          setHighlightedIndex(0);
+          setHighlightedIndex(nextText.trim() ? 0 : -1);
         },
         onClick: () => {
-          if (!disabled) setOpen(true);
-        },
-        onFocus: event => {
           if (!disabled) {
             setOpen(true);
             setTyped(false);
+            setHighlightedIndex(-1);
+          }
+        },
+        onFocus: event => {
+          if (!disabled) {
             event.target.select();
           }
         },
@@ -144,7 +162,15 @@
                     option.label || placeholder
                   )
                 )
-              : e("div", { className: "searchable-select-empty" }, "No matching options")
+              : e(
+                  "div",
+                  {
+                    className: "searchable-select-empty",
+                    id: `${listId}-error`,
+                    role: "alert"
+                  },
+                  "No matching option. Choose an existing value or press Esc to cancel."
+                )
           )
         : null
     );
@@ -1149,7 +1175,7 @@
     const [pdfError, setPdfError] = useState("");
     const [doorGateOptionsOpen, setDoorGateOptionsOpen] = useState(false);
     const [doorGateOptionsQuery, setDoorGateOptionsQuery] = useState("");
-    const [doorGateHighlightedIndex, setDoorGateHighlightedIndex] = useState(0);
+    const [doorGateHighlightedIndex, setDoorGateHighlightedIndex] = useState(-1);
     const [picklistChoices, setPicklistChoices] = useState({
       lock: [],
       color: [],
@@ -1235,7 +1261,7 @@
         if (!root.contains(ev.target)) {
           setDoorGateOptionsOpen(false);
           setDoorGateOptionsQuery("");
-          setDoorGateHighlightedIndex(0);
+          setDoorGateHighlightedIndex(-1);
         }
       };
       document.addEventListener("mousedown", handleDocMouseDown);
@@ -1696,7 +1722,7 @@
     const closeDoorGateOptions = () => {
       setDoorGateOptionsOpen(false);
       setDoorGateOptionsQuery("");
-      setDoorGateHighlightedIndex(0);
+      setDoorGateHighlightedIndex(-1);
     };
 
     const handleDoorGateSearchKeyDown = event => {
@@ -1706,6 +1732,7 @@
         const direction = event.key === "ArrowDown" ? 1 : -1;
         setDoorGateHighlightedIndex(index => {
           if (!filteredDoorGateOptionChoices.length) return 0;
+          if (index < 0) return direction > 0 ? 0 : filteredDoorGateOptionChoices.length - 1;
           return (index + direction + filteredDoorGateOptionChoices.length) % filteredDoorGateOptionChoices.length;
         });
         return;
@@ -1713,7 +1740,10 @@
       if (event.key === "Enter") {
         event.preventDefault();
         event.stopPropagation();
-        const option = filteredDoorGateOptionChoices[doorGateHighlightedIndex] || filteredDoorGateOptionChoices[0];
+        const option = getHighlightedOption(
+          filteredDoorGateOptionChoices,
+          doorGateHighlightedIndex
+        );
         if (option) toggleDoorGateOption(option);
         return;
       }
@@ -1788,7 +1818,8 @@
             e("label", null, "Job Number:"),
             e("input", {
               value: form.jobNumber,
-              readOnly: true
+              readOnly: true,
+              tabIndex: -1
             })
           ),
           e(
@@ -1798,7 +1829,8 @@
             e("input", {
               type: "date",
               value: form.issueDate,
-              readOnly: true
+              readOnly: true,
+              tabIndex: -1
             })
           )
         ),
@@ -1811,7 +1843,8 @@
             e("label", null, "Job Name:"),
             e("input", {
               value: form.jobName,
-              readOnly: true
+              readOnly: true,
+              tabIndex: -1
             })
           ),
           e(
@@ -1821,7 +1854,8 @@
             e("input", {
               type: "date",
               value: form.dueDate,
-              readOnly: true
+              readOnly: true,
+              tabIndex: -1
             })
           )
         ),
@@ -1837,7 +1871,8 @@
             e("label", null, "Door Type:"),
             e("input", {
               value: form.doorType,
-              readOnly: true
+              readOnly: true,
+              tabIndex: -1
             })
           ),
           e(
@@ -1846,7 +1881,8 @@
             e("label", null, "Product ID:"),
             e("input", {
               value: form.productId,
-              readOnly: true
+              readOnly: true,
+              tabIndex: -1
             })
           ),
             e(
@@ -1855,7 +1891,8 @@
               e("label", null, "Product Name:"),
               e("input", {
                 value: form.productName,
-                readOnly: true
+                readOnly: true,
+                tabIndex: -1
               })
             ),
             requiresSecondaryProduct
@@ -1889,7 +1926,8 @@
                   e("label", null, "Secondary Product:"),
                   e("input", {
                     value: form.secondaryProductName || "",
-                    readOnly: true
+                    readOnly: true,
+                    tabIndex: -1
                   })
                 )
               : null,
@@ -2152,8 +2190,9 @@
                       autoComplete: "off",
                       className: "multi-picklist-search",
                       onChange: event => {
-                        setDoorGateOptionsQuery(event.target.value);
-                        setDoorGateHighlightedIndex(0);
+                        const nextQuery = event.target.value;
+                        setDoorGateOptionsQuery(nextQuery);
+                        setDoorGateHighlightedIndex(nextQuery.trim() ? 0 : -1);
                       },
                       onKeyDown: handleDoorGateSearchKeyDown,
                       placeholder: "Type to search options",

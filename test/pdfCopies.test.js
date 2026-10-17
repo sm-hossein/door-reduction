@@ -18,6 +18,10 @@ function loadRenderer(path, endMarker) {
     PDFLib,
     DoorReductionFormInteractions: {
       filterOptions() { return []; },
+      focusAdjacentControl() { return false; },
+      getHighlightedOption() { return null; },
+      getSearchResults() { return []; },
+      hasInvalidSearch() { return false; },
       moveFocusOnEnter() { return false; },
       withCurrentOption(options) { return options; },
     },

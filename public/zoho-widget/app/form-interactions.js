@@ -33,6 +33,17 @@
     return normalized.filter(option => normalizeText(option.label).includes(needle));
   };
 
+  const getHighlightedOption = (options, highlightedIndex) => {
+    if (!Number.isInteger(highlightedIndex) || highlightedIndex < 0) return null;
+    return (Array.isArray(options) ? options : [])[highlightedIndex] ?? null;
+  };
+
+  const getSearchResults = (options, query, typed = false) =>
+    filterOptions(options, typed ? query : "").filter(option => !typed || option.value !== "");
+
+  const hasInvalidSearch = (query, typed, results) =>
+    !!typed && !!String(query ?? "").trim() && (!Array.isArray(results) || results.length === 0);
+
   const isVisible = element => {
     if (!element || element.hidden) return false;
     if (element.getClientRects && element.getClientRects().length === 0) return false;
@@ -51,6 +62,17 @@
     );
   };
 
+  const focusAdjacentControl = (target, root, backwards = false) => {
+    const controls = getEnterNavigationControls(root);
+    const currentIndex = controls.indexOf(target);
+    if (currentIndex < 0) return false;
+    const next = controls[currentIndex + (backwards ? -1 : 1)];
+    if (!next) return false;
+    next.focus?.();
+    next.select?.();
+    return true;
+  };
+
   const moveFocusOnEnter = (event, root) => {
     if (
       event?.key !== "Enter" ||
@@ -66,21 +88,17 @@
       return false;
     }
 
-    const controls = getEnterNavigationControls(root);
-    const currentIndex = controls.indexOf(target);
-    if (currentIndex < 0) return false;
-    const nextIndex = event.shiftKey ? currentIndex - 1 : currentIndex + 1;
-    const next = controls[nextIndex];
-    if (!next) return false;
-
+    if (!focusAdjacentControl(target, root, !!event.shiftKey)) return false;
     event.preventDefault?.();
-    next.focus?.();
-    next.select?.();
     return true;
   };
 
   window.DoorReductionFormInteractions = {
     filterOptions,
+    focusAdjacentControl,
+    getHighlightedOption,
+    getSearchResults,
+    hasInvalidSearch,
     getEnterNavigationControls,
     moveFocusOnEnter,
     normalizeOptions,
