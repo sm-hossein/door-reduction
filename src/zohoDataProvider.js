@@ -1,8 +1,8 @@
 const ORDER_ITEM_MODULE = "Order_Items";
 const CRM_PRODUCT_MODULE = "Products";
-const PRODUCT_MODULE = "Steel_Products";
+const PRODUCT_MODULE = "Product_Definitions";
 const COMPONENT_MODULE = "Components";
-const PRODUCT_COMPONENT_MODULE = "Steel_Product_Components";
+const PRODUCT_COMPONENT_MODULE = "Product_Definition_Components";
 
 const fs = require("fs");
 const path = require("path");

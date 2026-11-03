@@ -179,7 +179,7 @@
   const CONFIG = {
     orderItemsModule: "Order_Items",
     productsModule: "Products",
-    steelProductsModule: "Steel_Products",
+    productDefinitionsModule: "Product_Definitions",
     ordersModule: "Deals",
     reductionFieldsKey: "Reduction_Fields",
     exportFunctionName: "doorreductionbackend",
@@ -1497,7 +1497,7 @@
 
         try {
           const resp = await ZOHO.CRM.API.searchRecord({
-            Entity: CONFIG.steelProductsModule,
+            Entity: CONFIG.productDefinitionsModule,
             Type: "criteria",
             Query: `(Name:equals:${secondaryId})`
           });
