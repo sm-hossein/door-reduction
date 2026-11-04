@@ -42,6 +42,6 @@ test('product definition component reads use the renamed CRM module API', async 
   assert.equal(requests.length, 1);
   assert.equal(
     requests[0].url,
-    'https://www.zohoapis.com/crm/v8/Product_Definition_Components/search?criteria=(Steel_Product:equals:Y206)'
+    'https://www.zohoapis.com/crm/v8/Product_Definition_Components/search?criteria=(Product_Definition:equals:Y206)'
   );
 });

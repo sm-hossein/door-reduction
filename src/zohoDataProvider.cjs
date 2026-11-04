@@ -72,7 +72,7 @@ const COMPONENT_FIELD_MAP = {
 };
 
 const PRODUCT_COMPONENT_FIELD_MAP = {
-  productId: "Steel_Product",
+  productId: "Product_Definition",
   componentId: "Component",
   doorType: "Door_Type",
   group: "Group",
@@ -275,7 +275,7 @@ function getGateDoorTypeFromProduct(crmProduct, orderItemProductCategory) {
   return "";
 }
 
-function getSteelProductName(crmProduct, lockType, orderItemProductCategory) {
+function getProductDefinitionName(crmProduct, lockType, orderItemProductCategory) {
   if (!crmProduct) return "";
   if (isSecurityGateCategory(orderItemProductCategory)) {
     return normalizeCrmScalar(crmProduct.Reduction_Style_Code);
@@ -324,7 +324,7 @@ function getDoorField(record, jsonObj, field, fallback) {
   return fallback;
 }
 
-function normalizeDoor(context, record, steelProductName, resolvedDoorType) {
+function normalizeDoor(context, record, productDefinitionName, resolvedDoorType) {
   if (!record) return null;
   const jsonObj = parseJsonField(record);
   const itemType = record.Item_Type || {};
@@ -364,7 +364,7 @@ function normalizeDoor(context, record, steelProductName, resolvedDoorType) {
     "Issue Date": String(record.Created_Time || DOOR_FIELD_DEFAULTS["Issue Date"]),
     "Due Date": String(record.Order_Closing_Date || DOOR_FIELD_DEFAULTS["Due Date"]),
     "Quantity": String(record.Qty || record.Qty1 || DOOR_FIELD_DEFAULTS["Quantity"]),
-    "Product ID": String(steelProductName || itemType.id || DOOR_FIELD_DEFAULTS["Product ID"]),
+    "Product ID": String(productDefinitionName || itemType.id || DOOR_FIELD_DEFAULTS["Product ID"]),
     "Secondary Product ID": normalizeCrmScalar(getDoorField(record, jsonObj, "Secondary Product ID", DOOR_FIELD_DEFAULTS["Secondary Product ID"])),
     "Hinge": normalizeCrmScalar(getDoorField(record, jsonObj, "Hinge", DOOR_FIELD_DEFAULTS["Hinge"])),
     "Operator": normalizeCrmScalar(getDoorField(record, jsonObj, "Operator", DOOR_FIELD_DEFAULTS["Operator"])),
@@ -513,23 +513,23 @@ function createZohoDataProvider(context) {
       const url = `https://www.zohoapis.com/crm/v8/${ORDER_ITEM_MODULE}/${doorId}`;
       const res = await zohoRequest(context, { method: "GET", url });
       const record = res && Array.isArray(res.data) ? res.data[0] : null;
-      let steelProductName = "";
+      let productDefinitionName = "";
       let resolvedDoorType = "";
       if (record && record.Item_Type && record.Item_Type.id) {
         const crmProduct = await getCrmProductByZohoId(context, record.Item_Type.id);
-        steelProductName = getSteelProductName(crmProduct, record.Lock_Type, record.Product_Category);
+        productDefinitionName = getProductDefinitionName(crmProduct, record.Lock_Type, record.Product_Category);
         resolvedDoorType = getGateDoorTypeFromProduct(crmProduct, record.Product_Category);
       }
-      return normalizeDoor(context, record, steelProductName, resolvedDoorType);
+      return normalizeDoor(context, record, productDefinitionName, resolvedDoorType);
     },
     async getDoorByJobNumber(jobNumber) {
       return this.getDoorById(jobNumber);
     },
-    async getSteelProductByDoorId(doorId) {
+    async getProductDefinitionByDoorId(doorId) {
       const door = await this.getDoorById(doorId);
-      const steelProductName = door ? door["Product ID"] : "";
-      if (!steelProductName) return null;
-      return this.getProductById(steelProductName);
+      const productDefinitionName = door ? door["Product ID"] : "";
+      if (!productDefinitionName) return null;
+      return this.getProductById(productDefinitionName);
     }
   };
 }

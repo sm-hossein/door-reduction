@@ -174,7 +174,7 @@ async function listImageFiles(imagesDir) {
 async function main() {
   const imagesDir = path.resolve(cwd, env("IMAGES_DIR", "Door Pictures/extracted-images"));
   const outputLogDir = path.resolve(cwd, env("UPLOAD_LOG_DIR", "Door Pictures/upload-logs"));
-  const moduleApiName = env("ZOHO_MODULE_API_NAME", "Steel_Product");
+  const moduleApiName = env("ZOHO_MODULE_API_NAME", "Product_Definitions");
   const nameFieldApiName = env("ZOHO_NAME_FIELD_API_NAME", "Name");
   const dryRun = boolEnv("DRY_RUN", false);
   const delayMs = Number(env("REQUEST_DELAY_MS", "100")) || 0;
